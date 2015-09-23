@@ -2,13 +2,18 @@ sudo: false
 language: cpp
 cache:
   - apt
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - gcc-4.9
-      - g++-4.9
+
+matrix:
+  include:
+    - env: GCC_VERSION=4.9
+      addons: &gcc49
+        apt:
+          sources: &sources
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-4.9
+            - g++-4.9
+            - valgrind
 
 script:
   - rm -rf build;
