@@ -1,0 +1,54 @@
+language: cpp
+os: linux
+
+matrix:
+  include:
+    - compiler: gcc
+      env: COMPILER_VERSION="4.9"
+    - compiler: gcc
+      env: COMPILER_VERSION="5.0"
+    - compiler: clang
+      env: COMPILER_VERSION="3.5"
+    - compiler: clang
+      env: COMPILER_VERSION="3.7"
+  exclude:
+    - env: ignore=this
+  fast_finish: true
+
+before_install:
+  - git log --name-status HEAD^..HEAD
+  - if [ "$CXX" == "g++" ];
+    then
+      echo sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test;
+      sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test;
+    fi
+  - if [ "$CXX" == "clang++" ];
+    then
+      echo sudo add-apt-repository --yes ppa:h-rayflood/gcc-upper;
+      sudo add-apt-repository --yes ppa:h-rayflood/gcc-upper;
+      echo sudo add-apt-repository --yes ppa:h-rayflood/llvm-upper;
+      sudo add-apt-repository --yes ppa:h-rayflood/llvm-upper;
+    fi
+  - sudo apt-get update -qq
+
+install:
+  - if [ "$CXX" = "g++" ];
+    then
+      echo sudo apt-get install -qq g++-${COMPILER_VERSION};
+      sudo apt-get install -qq g++-${COMPILER_VERSION};
+      echo export CXX="g++-${COMPILER_VERSION}" CC="gcc-${COMPILER_VERSION}";
+      export CXX="g++-${COMPILER_VERSION}" CC="gcc-${COMPILER_VERSION}";
+    fi
+  - if [ "$CXX" == "clang++" ];
+    then
+      echo sudo apt-get install -qq clang-${COMPILER_VERSION};
+      sudo apt-get install -qq clang-${COMPILER_VERSION};
+      echo export CXX="clang++-${COMPILER_VERSION}" CC="clang-${COMPILER_VERSION}";
+      export CXX="clang++-${COMPILER_VERSION}" CC="clang-${COMPILER_VERSION}";
+    fi
+  - sudo apt-get -qq install valgrind;
+
+script:
+  - rm -rf build;
+  - ./waf configure --testcmd="valgrind -q --error-exitcode=1";
+  - ./waf build;
