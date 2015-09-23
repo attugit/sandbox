@@ -14,6 +14,15 @@ matrix:
             - gcc-4.9
             - g++-4.9
             - valgrind
+    - env: GCC_VERSION=5
+      addons: &gcc5
+        apt:
+          sources: &sources
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5
+            - g++-5
+            - valgrind
 
 before_install:
   - |
