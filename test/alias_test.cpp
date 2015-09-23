@@ -27,7 +27,7 @@ TEST_CASE("alias", "[alias]") {
     REQUIRE(*a == 1);
   }
   SECTION("sorting") {
-    std::array<int, 3> array = {3, 1, 2};
+    std::array<int, 3> array = {{3, 1, 2}};
     std::vector<alias_t<int>> vec;
     vec.emplace_back(array[1]);
     vec.emplace_back(array[2]);
