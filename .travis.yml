@@ -6,13 +6,8 @@ matrix:
     - compiler: gcc
       env: COMPILER_VERSION="4.9"
     - compiler: gcc
-      env: COMPILER_VERSION="5.0"
+      env: COMPILER_VERSION="5"
     - compiler: clang
-      env: COMPILER_VERSION="3.5"
-    - compiler: clang
-      env: COMPILER_VERSION="3.7"
-  exclude:
-    - env: ignore=this
   fast_finish: true
 
 before_install:
@@ -41,10 +36,10 @@ install:
     fi
   - if [ "$CXX" == "clang++" ];
     then
-      echo sudo apt-get install -qq clang-${COMPILER_VERSION};
-      sudo apt-get install -qq clang-${COMPILER_VERSION};
-      echo export CXX="clang++-${COMPILER_VERSION}" CC="clang-${COMPILER_VERSION}";
-      export CXX="clang++-${COMPILER_VERSION}" CC="clang-${COMPILER_VERSION}";
+      echo sudo apt-get install -qq clang;
+      sudo apt-get install -qq clang;
+      echo export CXX="clang++" CC="clang";
+      export CXX="clang++" CC="clang";
     fi
   - sudo apt-get -qq install valgrind;
 
