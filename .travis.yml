@@ -3,8 +3,9 @@ os: linux
 compiler: gcc
 
 matrix:
-  - env: COMPILER_VERSION="4.9"
-  - env: COMPILER_VERSION="5.1"
+  include:
+    - env: COMPILER_VERSION="4.9";
+    - env: COMPILER_VERSION="5.1";
   fast_finish: true
 
 before_install:
