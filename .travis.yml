@@ -2,20 +2,14 @@ language: cpp
 os: linux
 compiler: gcc
 
-matrix:
-  include:
-    - env: COMPILER_VERSION="4.9";
-    - env: COMPILER_VERSION="5.1";
-  fast_finish: true
-
 before_install:
   - git log --name-status HEAD^..HEAD
   - sudo add-apt-repository --yes ppa:ubuntu-toolchain-r/test;
   - sudo apt-get update -qq
 
 install:
-  - sudo apt-get install -qq g++-${COMPILER_VERSION};
-  - export CXX="g++-${COMPILER_VERSION}" CC="gcc-${COMPILER_VERSION}";
+  - sudo apt-get install -qq g++;
+  - export CXX="g++" CC="gcc";
   - sudo apt-get -qq install valgrind;
 
 script:
