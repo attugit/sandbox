@@ -1,5 +1,6 @@
 sudo: false
 language: cpp
+os: linux
 cache:
   - apt
 
@@ -40,4 +41,4 @@ before_install:
 script:
   - rm -rf build;
   - ./waf configure;
-  - ./waf build;
+  - ./waf build --alltest --testcmd="valgrind -q --error-exitcode=1 %s";
