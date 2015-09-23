@@ -2,8 +2,52 @@ language: cpp
 os: linux
 sudo: false
 
-compiler:
-  - gcc
+matrix:
+  include:
+     - env: CLANG_VERSION=3.5
+       addons: &clang35
+         apt:
+           packages:
+             - clang-3.5
+             - valgrind
+           sources:
+             - ubuntu-toolchain-r-test
+             - llvm-toolchain-precise-3.5
+
+    - env: CLANG_VERSION=3.7
+      addons: &clang37
+        apt:
+          packages:
+            - clang-3.7
+            - valgrind
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise
+
+    - env: GCC_VERSION=4.9
+      addons: &gcc49
+        apt:
+          packages:
+            - g++-4.9
+            - valgrind
+          sources:
+            - ubuntu-toolchain-r-test
+
+     - env: GCC_VERSION=5
+       addons: &gcc5
+         apt:
+           packages:
+             - gcc-5
+             - valgrind
+           sources:
+             - ubuntu-toolchain-r-test
+
+before_install:
+  - if [ -n "$GCC_VERSION" ]; then export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}"; fi
+  - if [ -n "$CLANG_VERSION" ]; then export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}"; fi
+  - which $CXX
+  - which $CC
+  - which valgrind
 
 script:
   - rm -rf build;
