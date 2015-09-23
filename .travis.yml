@@ -13,7 +13,6 @@ matrix:
           packages:
             - gcc-4.9
             - g++-4.9
-            - valgrind
     - env: GCC_VERSION=5
       language: cpp
       addons: &gcc5
@@ -23,7 +22,6 @@ matrix:
           packages:
             - gcc-5
             - g++-5
-            - valgrind
 
 before_install:
   - |
@@ -36,9 +34,8 @@ before_install:
     fi
   - which $CXX
   - which $CC
-  - which valgrind
 
 script:
   - rm -rf build;
   - ./waf configure;
-  - ./waf build --alltest --testcmd="valgrind -q --error-exitcode=1 %s";
+  - ./waf build;
