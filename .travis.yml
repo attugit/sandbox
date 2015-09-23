@@ -1,12 +1,11 @@
 sudo: false
-language: cpp
-os: linux
 cache:
   - apt
 
 matrix:
   include:
     - env: GCC_VERSION=4.9
+      language: cpp
       addons: &gcc49
         apt:
           sources: &sources
@@ -16,6 +15,7 @@ matrix:
             - g++-4.9
             - valgrind
     - env: GCC_VERSION=5
+      language: cpp
       addons: &gcc5
         apt:
           sources: &sources
