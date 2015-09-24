@@ -22,9 +22,12 @@ TEST_CASE("alias", "[alias]") {
     const int x = 0;
     const int y = 1;
     auto a = alias(x);
+    auto b = alias(x);
     REQUIRE(*a == 0);
     a = rebind(y);
     REQUIRE(*a == 1);
+    a = rebind(b);
+    REQUIRE(*a == 0);
   }
   SECTION("sorting") {
     std::array<int, 3> array = {{3, 1, 2}};

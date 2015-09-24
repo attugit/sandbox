@@ -105,6 +105,11 @@ constexpr rebind_t<T> rebind(T& t) noexcept {
 }
 
 template <typename T>
+constexpr rebind_t<T> rebind(alias_t<T> a) noexcept {
+  return rebind_t<T>(*a);
+}
+
+template <typename T>
 constexpr T& unwrap(alias_t<T> a) noexcept {
   return *a;
 }
