@@ -10,7 +10,7 @@ TEST_CASE("alias", "[alias]") {
     int x = 0;
     int y = 1;
     auto a = alias(x);
-    REQUIRE(*a == 0);
+    REQUIRE(unwrap(a) == 0);
     a = 2;
     REQUIRE(x == 2);
     a = rebind(y);
