@@ -1,5 +1,6 @@
 #pragma once
 #include <memory>
+#include <archie/static_constexpr_storage.hpp>
 
 namespace archie {
 template <typename T>
@@ -14,8 +15,8 @@ struct alias_t {
   struct rebind_t {
     rebind_t(reference x) : data_(std::addressof(x)) {}
     rebind_t(rebind_t const& x) = default;
-    pointer get() { return data_; }
-    const_pointer get() const { return data_; }
+    reference get() { return *data_; }
+    const_reference get() const { return *data_; }
 
   private:
     pointer data_;
@@ -30,7 +31,7 @@ struct alias_t {
   alias_t(alias_t&&) = default;
   template <typename U>
   alias_t(alias_t<U> const& a)
-      : ref_(*a.get()) {}
+      : ref_(a.get()) {}
 
   alias_t& operator=(alias_t const&) = delete;
   alias_t& operator=(alias_t&&) = default;
@@ -40,22 +41,22 @@ struct alias_t {
     return *this;
   }
   alias_t& operator=(const_reference x) {
-    if (ref_.get() != &x) { *ref_.get() = x; }
+    if (&get() != &x) { get() = x; }
     return *this;
   }
   alias_t& operator=(value_type&& x) {
-    if (ref_.get() != &x) { *ref_.get() = std::move(x); }
+    if (&get() != &x) { get() = std::move(x); }
     return *this;
   }
 
-  reference operator*() { return *ref_.get(); }
-  const_reference operator*() const { return *ref_.get(); }
+  reference get() { return ref_.get(); }
+  const_reference get() const { return ref_.get(); }
 
-  pointer get() { return ref_.get(); }
-  const_pointer get() const { return ref_.get(); }
+  reference operator*() { return get(); }
+  const_reference operator*() const { return get(); }
 
-  pointer operator->() { return get(); }
-  const_pointer operator->() const { return get(); }
+  pointer operator->() { return &get(); }
+  const_pointer operator->() const { return &get(); }
 
 private:
   rebind_t ref_;
@@ -63,7 +64,7 @@ private:
 
 template <typename T>
 bool operator==(alias_t<T> const& lhs, alias_t<T> const& rhs) {
-  return lhs.get() == rhs.get();
+  return &lhs.get() == &rhs.get();
 }
 
 template <typename T>
@@ -73,7 +74,7 @@ bool operator!=(alias_t<T> const& lhs, alias_t<T> const& rhs) {
 
 template <typename T>
 bool operator<(alias_t<T> const& lhs, alias_t<T> const& rhs) {
-  return lhs.get() < rhs.get();
+  return &lhs.get() < &rhs.get();
 }
 
 template <typename T>
@@ -94,23 +95,34 @@ bool operator>=(alias_t<T> const& lhs, alias_t<T> const& rhs) {
 template <typename T>
 using rebind_t = typename alias_t<T>::rebind_t;
 
-template <typename T>
-constexpr alias_t<T> alias(T& t) noexcept {
-  return alias_t<T>(t);
+namespace detail {
+  struct alias_ {
+    template <typename T>
+    constexpr alias_t<T> operator()(T& t) const noexcept {
+      return alias_t<T>(t);
+    }
+  };
+
+  struct rebind_ {
+    template <typename T>
+    constexpr rebind_t<T> operator()(T& t) const noexcept {
+      return rebind_t<T>(t);
+    }
+    template <typename T>
+    constexpr rebind_t<T> operator()(alias_t<T> a) const noexcept {
+      return rebind_t<T>(*a);
+    }
+  };
+
+  struct unwrap_ {
+    template <typename T>
+    constexpr T& unwrap(alias_t<T> a) const noexcept {
+      return *a;
+    }
+  };
 }
 
-template <typename T>
-constexpr rebind_t<T> rebind(T& t) noexcept {
-  return rebind_t<T>(t);
-}
-
-template <typename T>
-constexpr rebind_t<T> rebind(alias_t<T> a) noexcept {
-  return rebind_t<T>(*a);
-}
-
-template <typename T>
-constexpr T& unwrap(alias_t<T> a) noexcept {
-  return *a;
-}
+static constexpr auto const& alias = meta::instance<detail::alias_>();
+static constexpr auto const& rebind = meta::instance<detail::rebind_>();
+static constexpr auto const& unwrap = meta::instance<detail::unwrap_>();
 }
