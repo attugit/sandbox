@@ -116,7 +116,7 @@ namespace detail {
 
   struct unwrap_ {
     template <typename T>
-    constexpr auto operator()(alias_t<T> a) const noexcept {
+    constexpr typename alias_t<T>::reference operator()(alias_t<T> a) const noexcept {
       return *a;
     }
   };

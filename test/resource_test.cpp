@@ -6,7 +6,7 @@ namespace {
 using namespace archie;
 
 TEST_CASE("Can use resource", "[resource]") {
-  auto const del = [](auto& a) { ++*a; };
+  auto const del = [](auto& a) { ++unwrap(a); };
   SECTION("Can create resource") {
     int i = 0;
     {
