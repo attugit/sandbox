@@ -21,7 +21,7 @@ struct error {
   }
 };
 
-using status = archie::reserved<int, error::codes::a, error::codes::b, error::codes::c>;
+using status = archie::reserved_t<int, error::codes::a, error::codes::b, error::codes::c>;
 
 status foo() {
   static int x = error::codes::c;
@@ -47,7 +47,7 @@ struct error {
   enum codes : int { a = -1, b = -2, c = -3 };
 };
 
-using status = reserved<int, error::codes::a, error::codes::b, error::codes::c>;
+using status = reserved_t<int, error::codes::a, error::codes::b, error::codes::c>;
 
 TEST_CASE("Can create inapt", "[inapt]") {
   enum { non_null = 7 };

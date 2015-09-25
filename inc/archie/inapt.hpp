@@ -6,7 +6,7 @@ namespace archie {
 struct null_inapt_t {};
 
 template <typename T, typename P>
-struct inapt {
+struct inapt_t {
   using value_type = T;
   using type = value_type;
   using pointer = T*;
@@ -27,23 +27,23 @@ private:
   impl_ impl;
 
 public:
-  inapt() = default;
-  inapt(inapt const&) = default;
-  inapt(inapt&&) = default;
-  inapt& operator=(inapt const&) = default;
-  inapt& operator=(inapt&&) = default;
+  inapt_t() = default;
+  inapt_t(inapt_t const&) = default;
+  inapt_t(inapt_t&&) = default;
+  inapt_t& operator=(inapt_t const&) = default;
+  inapt_t& operator=(inapt_t&&) = default;
 
   template <typename... U>
-  explicit inapt(U&&... u)
+  explicit inapt_t(U&&... u)
       : impl(std::forward<U>(u)...) {}
 
   template <typename U>
-  inapt& operator=(U const& u) {
+  inapt_t& operator=(U const& u) {
     impl.value = u;
     return *this;
   }
 
-  inapt& operator=(null_inapt_t const&) {
+  inapt_t& operator=(null_inapt_t const&) {
     impl.set_null();
     return *this;
   }
@@ -72,24 +72,26 @@ public:
   const_pointer operator->() const { return &get(); }
 };
 
-template <typename T, T...>
-struct reserved_value;
+namespace detail {
+  template <typename T, T...>
+  struct reserved_value_t;
 
-template <typename T, T v0, T... vs>
-struct reserved_value<T, v0, vs...> {
-  T null() const { return v0; }
-  bool is_null(T const& x) const { return (x == v0) || reserved_value<T, vs...>{}.is_null(x); }
-};
+  template <typename T, T v0, T... vs>
+  struct reserved_value_t<T, v0, vs...> {
+    T null() const { return v0; }
+    bool is_null(T const& x) const { return (x == v0) || reserved_value_t<T, vs...>{}.is_null(x); }
+  };
 
-template <typename T, T v0>
-struct reserved_value<T, v0> {
-  T null() const { return v0; }
-  bool is_null(T const& x) const { return x == v0; }
-};
+  template <typename T, T v0>
+  struct reserved_value_t<T, v0> {
+    T null() const { return v0; }
+    bool is_null(T const& x) const { return x == v0; }
+  };
+}
 
 template <typename T, T... v>
-using reserved = inapt<T, reserved_value<T, v...>>;
+using reserved_t = inapt_t<T, detail::reserved_value_t<T, v...>>;
 
 template <typename T>
-using reserved_default = reserved<T, T{}>;
+using reserved_default_t = reserved_t<T, T{}>;
 }
