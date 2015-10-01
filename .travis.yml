@@ -5,7 +5,7 @@ cache:
 
 matrix:
   include:
-    - env: GCC_VERSION=4.9
+    - env: COMPILER=g++-4.9
       os: linux
       addons: &gcc49
         apt:
@@ -14,7 +14,7 @@ matrix:
           packages:
             - gcc-4.9
             - g++-4.9
-    - env: GCC_VERSION=5
+    - env: COMPILER=g++-5
       os: linux
       addons: &gcc5
         apt:
@@ -23,20 +23,22 @@ matrix:
           packages:
             - gcc-5
             - g++-5
+    - env: COMPILER=clang++-3.7
+      os: linux
+      addons: &clang37
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-precise-3.7
+            - llvm-toolchain-precise
+          packages:
+            - clang-3.7
 
 before_install:
-  - |
-    if [ -n "$GCC_VERSION" ]; then
-      export CXX="g++-${GCC_VERSION}" CC="gcc-${GCC_VERSION}";
-    fi
-  - |
-    if [ -n "$CLANG_VERSION" ]; then
-      export CXX="clang++-${CLANG_VERSION}" CC="clang-${CLANG_VERSION}";
-    fi
+  - export CXX=$COMPILER
   - which $CXX
-  - which $CC
 
 script:
   - rm -rf build;
-  - ./waf configure;
-  - ./waf build;
+  - CXX=$COMPILER ./waf configure;
+  - CXX=$COMPILER ./waf build;
