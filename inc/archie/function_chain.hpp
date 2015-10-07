@@ -32,16 +32,17 @@ struct pure_function<R(Args...)> {
 
   pure_function() = default;
 
-  template <typename U,
-            typename std::enable_if<std::is_convertible<U, pointer>::value, int>::type...>
-  explicit pure_function(U u)
+  template <typename U>
+  explicit pure_function(
+      U u,
+      typename std::enable_if<std::is_convertible<U, pointer>::value, void*>::type = nullptr)
       : fptr(u) {}
 
-  template <
-      typename U,
+  template <typename U>
+  explicit pure_function(
+      U,
       typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
-                              int>::type...>
-  explicit pure_function(U)
+                              void*>::type = nullptr)
       : pure_function([](Args... xs) { return (*static_cast<U*>(nullptr))(xs...); }) {}
 
   template <typename... U>
@@ -49,18 +50,17 @@ struct pure_function<R(Args...)> {
     return (*fptr)(std::forward<U>(u)...);
   }
 
-  template <typename U,
-            typename std::enable_if<std::is_convertible<U, pointer>::value, int>::type...>
-  pure_function& operator=(U u) {
+  template <typename U>
+  typename std::enable_if<std::is_convertible<U, pointer>::value, pure_function&>::type operator=(
+      U u) {
     fptr = u;
     return *this;
   }
 
-  template <
-      typename U,
-      typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
-                              int>::type...>
-  pure_function& operator=(U) {
+  template <typename U>
+  typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
+                          pure_function&>::type
+  operator=(U) {
     fptr = [](Args... xs) { return (*static_cast<U*>(nullptr))(xs...); };
     return *this;
   }
