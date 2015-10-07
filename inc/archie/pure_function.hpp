@@ -41,8 +41,8 @@ struct pure_function<R(Args...)> {
   template <typename U>
   typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
                           pure_function&>::type
-  operator=(U) {
-    fptr = [](Args... xs) { return (*static_cast<U*>(nullptr))(xs...); };
+  operator=(U u) {
+    fptr = pure_function{u};
     return *this;
   }
 
