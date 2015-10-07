@@ -25,5 +25,9 @@ TEST_CASE("pure_function", "[pure_function]") {
   REQUIRE(!p1);
   using ptr_t = int (*)(int);
   ptr_t ptr = p2;
+  auto p4 = make_pure_function<int(int)>(foo);
+  ptr_t p5 = make_pure_function<int(int)>(b);
+  REQUIRE(p4);
+  REQUIRE(p5);
 }
 }

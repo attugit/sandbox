@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 #include <type_traits>
+#include <archie/static_constexpr_storage.hpp>
 
 namespace archie {
 template <typename...>
@@ -53,4 +54,20 @@ struct pure_function<R(Args...)> {
 private:
   pointer fptr = nullptr;
 };
+
+namespace detail {
+  template <typename...>
+  struct make_pure_function_;
+
+  template <typename R, typename... Args>
+  struct make_pure_function_<R(Args...)> {
+    template <typename U>
+    auto operator()(U&& u) const {
+      return pure_function<R(Args...)>(std::forward<U>(u));
+    }
+  };
+}
+template <typename... T>
+static constexpr auto const& make_pure_function =
+    meta::instance<detail::make_pure_function_<T...>>();
 }
