@@ -24,7 +24,7 @@ struct pure_function<R(Args...)> {
   explicit pure_function(
       U,
       typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                                  std::is_trivially_constructible<U>::value,
+                                  std::is_trivially_default_constructible<U>::value,
                               void*>::type = nullptr)
       : pure_function([](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); }) {
   }
@@ -43,7 +43,7 @@ struct pure_function<R(Args...)> {
 
   template <typename U>
   typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                              std::is_trivially_constructible<U>::value,
+                              std::is_trivially_default_constructible<U>::value,
                           pure_function&>::type
   operator=(U) {
     fptr = [](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); };
