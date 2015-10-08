@@ -23,9 +23,11 @@ struct pure_function<R(Args...)> {
   template <typename U>
   explicit pure_function(
       U,
-      typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
+      typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
+                                  std::is_trivially_constructible<U>::value,
                               void*>::type = nullptr)
-      : pure_function([](Args... xs) { return (*static_cast<U*>(nullptr))(xs...); }) {}
+      : pure_function([](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); }) {
+  }
 
   template <typename... U>
   auto operator()(U&&... u) const {
@@ -40,10 +42,11 @@ struct pure_function<R(Args...)> {
   }
 
   template <typename U>
-  typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value,
+  typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
+                              std::is_trivially_constructible<U>::value,
                           pure_function&>::type
   operator=(U) {
-    fptr = [](Args... xs) { return (*static_cast<U*>(nullptr))(xs...); };
+    fptr = [](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); };
     return *this;
   }
 
@@ -54,20 +57,4 @@ struct pure_function<R(Args...)> {
 private:
   pointer fptr = nullptr;
 };
-
-namespace detail {
-  template <typename...>
-  struct make_pure_function_;
-
-  template <typename R, typename... Args>
-  struct make_pure_function_<R(Args...)> {
-    template <typename U>
-    auto operator()(U&& u) const {
-      return pure_function<R(Args...)>(std::forward<U>(u));
-    }
-  };
-}
-template <typename... T>
-static constexpr auto const& make_pure_function =
-    meta::instance<detail::make_pure_function_<T...>>();
 }
