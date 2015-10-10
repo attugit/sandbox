@@ -5,14 +5,40 @@
 
 namespace archie {
 namespace detail {
-  template <typename T>
-  using trivial =
+  template <typename...>
+  struct to_function_pointer_;
+
+  template <typename R, typename... Args>
+  struct to_function_pointer_<R(Args...)> {
+  private:
 #if __GNUC__ < 5
-    std::has_trivial_default_constructor<T>;
+    template <typename T>
+    using trivial = std::has_trivial_default_constructor<T>;
 #else
-    std::is_trivially_default_constructible<T>;
+    template <typename T>
+    using trivial = std::is_trivially_default_constructible<T>;
 #endif
+  public:
+    using pointer = R (*)(Args...);
+
+    template <typename T>
+    typename std::enable_if<std::is_convertible<T, pointer>::value, pointer>::type operator()(
+        T t) const {
+      return t;
+    }
+
+    template <typename T>
+    typename std::enable_if<!std::is_convertible<T, pointer>::value && std::is_empty<T>::value &&
+                                trivial<T>::value,
+                            pointer>::type
+    operator()(T) const {
+      return this->operator()([](Args... args) {
+        return typename std::add_const<T>::type{}(std::forward<Args>(args)...);
+      });
+    }
+  };
 }
+
 template <typename...>
 struct pure_function;
 
@@ -23,19 +49,14 @@ struct pure_function<R(Args...)> {
 
   pure_function() = default;
 
-  template <typename U>
-  explicit pure_function(
-      U u,
-      typename std::enable_if<std::is_convertible<U, pointer>::value, void*>::type = nullptr)
-      : fptr(u) {}
+  template <typename T>
+  explicit pure_function(T t)
+      : fptr(meta::instance<detail::to_function_pointer_<R(Args...)>>()(t)) {}
 
-  template <typename U>
-  explicit pure_function(
-      U,
-      typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                                  detail::trivial<U>::value,
-                              void*>::type = nullptr)
-      : pure_function([](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); }) {
+  template <typename T>
+  pure_function& operator=(T t) {
+    fptr = meta::instance<detail::to_function_pointer_<R(Args...)>>()(t);
+    return *this;
   }
 
   template <typename... U>
@@ -43,24 +64,7 @@ struct pure_function<R(Args...)> {
     return (*fptr)(std::forward<U>(u)...);
   }
 
-  template <typename U>
-  typename std::enable_if<std::is_convertible<U, pointer>::value, pure_function&>::type operator=(
-      U u) {
-    fptr = u;
-    return *this;
-  }
-
-  template <typename U>
-  typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                              detail::trivial<U>::value,
-                          pure_function&>::type
-  operator=(U) {
-    fptr = [](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); };
-    return *this;
-  }
-
   explicit operator bool() const { return fptr != nullptr; }
-
   operator pointer() const { return fptr; }
 
 private:
