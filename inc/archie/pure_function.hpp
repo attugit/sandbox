@@ -8,7 +8,7 @@ namespace detail {
   template <typename T>
   using trivial =
 #if __GNUC__ < 5
-    std::has_trivial_default_constructible<T>;
+    std::has_trivial_default_constructor<T>;
 #else
     std::is_trivially_default_constructible<T>;
 #endif
