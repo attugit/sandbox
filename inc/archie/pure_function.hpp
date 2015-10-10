@@ -4,6 +4,15 @@
 #include <archie/static_constexpr_storage.hpp>
 
 namespace archie {
+namespace detail {
+  template <typename T>
+  using trivial =
+#if __GNUC__ < 5
+    std::has_trivial_default_constructible<T>;
+#else
+    std::is_trivially_default_constructible<T>;
+#endif
+}
 template <typename...>
 struct pure_function;
 
@@ -24,7 +33,7 @@ struct pure_function<R(Args...)> {
   explicit pure_function(
       U,
       typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                                  std::is_trivially_default_constructible<U>::value,
+                                  detail::trivial<U>::value,
                               void*>::type = nullptr)
       : pure_function([](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); }) {
   }
@@ -43,7 +52,7 @@ struct pure_function<R(Args...)> {
 
   template <typename U>
   typename std::enable_if<!std::is_convertible<U, pointer>::value && std::is_empty<U>::value &&
-                              std::is_trivially_default_constructible<U>::value,
+                              detail::trivial<U>::value,
                           pure_function&>::type
   operator=(U) {
     fptr = [](Args... xs) { return std::add_const_t<U>{}(std::forward<Args>(xs)...); };
