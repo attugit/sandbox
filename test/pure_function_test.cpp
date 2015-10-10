@@ -1,29 +1,71 @@
 #include <archie/pure_function.hpp>
 #include <catch.hpp>
+#include <memory>
 
 namespace {
 using namespace archie;
 
-int foo(int) { return 3; }
+using arg_t = std::unique_ptr<int>;
+
+int foo(arg_t) { return 2; }
+
 struct bar {
-  int operator()(int) const { return 42; };
-};
-TEST_CASE("pure_function", "[pure_function]") {
-  pure_function<int(int)> p1(foo);
-  auto boo = [](int) { return 4; };
-  pure_function<int(int)> p2(boo);
-  bar b;
-  pure_function<int(int)> p3(b);
-  REQUIRE(p1(2) == foo(2));
-  REQUIRE(p2(2) == boo(2));
-  REQUIRE(p3(2) == b(2));
-  p1 = b;
-  p2 = foo;
-  p3 = boo;
-  REQUIRE(p1);
-  p1 = nullptr;
-  REQUIRE(!p1);
-  using ptr_t = int (*)(int);
-  ptr_t ptr = p2;
+  int operator()(arg_t) const { return 7; };
+} boo;
+
+using pf_t = pure_function<int(arg_t)>;
+
+TEST_CASE("pure_function construction", "[pure_function]") {
+  SECTION("can construct from free function") {
+    pf_t pf{foo};
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == foo(std::make_unique<int>(0)));
+  }
+  SECTION("can assign captureless lambda") {
+    auto const l = [](arg_t) { return 3; };
+    pf_t pf{l};
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == l(std::make_unique<int>(0)));
+  }
+  SECTION("can assing custom function object") {
+    pf_t pf{boo};
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == boo(std::make_unique<int>(0)));
+  }
+}
+
+TEST_CASE("pure_function assigment", "[pure_function]") {
+  pf_t pf;
+  SECTION("default constructed pure_function is null") { REQUIRE(!pf); }
+  SECTION("can assign free function") {
+    pf = foo;
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == foo(std::make_unique<int>(0)));
+  }
+  SECTION("can assign captureless lambda") {
+    auto const l = [](arg_t) { return 3; };
+    pf = l;
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == l(std::make_unique<int>(0)));
+  }
+  SECTION("can assing custom function object") {
+    pf = boo;
+    REQUIRE(pf);
+    REQUIRE(pf(std::make_unique<int>(0)) == boo(std::make_unique<int>(0)));
+  }
+  SECTION("can assign nullptr") {
+    pf = nullptr;
+    REQUIRE(!pf);
+  }
+}
+
+TEST_CASE("pure_function conversion to function pointer", "[pure_function]") {
+  pf_t pf;
+  pf_t::pointer ptr = pf;
+  REQUIRE(!ptr);
+  pf = boo;
+  ptr = pf;
+  REQUIRE(ptr);
+  REQUIRE(ptr(std::make_unique<int>(0)) == boo(std::make_unique<int>(0)));
 }
 }
