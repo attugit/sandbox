@@ -139,12 +139,11 @@ public:
 
 template <typename T, std::size_t N>
 struct array_traits<stack_buffer<T, N>> {
-  using type = stack_buffer<T, N>;
   using value_type = T;
-  using pointer = T*;
-  using const_pointer = T const*;
-  using reference = T&;
-  using const_reference = T const&;
+  using pointer = value_type*;
+  using const_pointer = value_type const*;
+  using reference = value_type&;
+  using const_reference = value_type const&;
   using iterator = pointer;
   using const_iterator = const_pointer;
   using size_type = std::size_t;
@@ -164,10 +163,10 @@ struct resource {
     static int id = 0;
     return id++;
   };
-  explicit resource(int i) : ptr(new int(i)), id(get_id()) {}
+  explicit resource(int i) : ptr(new int(i)), id_(get_id()) {}
   resource() : resource(0) {}
   resource(resource const& r) : resource(*(r.ptr)) {}
-  resource(resource&& r) : ptr(r.ptr), id(get_id()) { r.ptr = nullptr; }
+  resource(resource&& r) : ptr(r.ptr), id_(get_id()) { r.ptr = nullptr; }
   resource& operator=(resource const& r) {
     *ptr = *r.ptr;
     return *this;
@@ -180,18 +179,54 @@ struct resource {
   ~resource() {
     if (ptr) delete ptr;
   }
+  explicit operator bool() const { return ptr != nullptr; }
   operator int() const { return *ptr; }
+  int id() const { return id_; }
+  int value() const { return *ptr; }
   bool operator==(resource const& r) const { return *ptr == *r.ptr; }
   bool operator!=(resource const& r) const { return !(*this == r); }
 
 private:
   int* ptr = nullptr;
-  int id = 0;
+  int id_ = 0;
 };
 
+#if 0
+}
+
+#include <iostream>
+
+namespace archie {
+template <std::size_t N>
+struct array_traits<stack_buffer<resource, N>> {
+  using type = stack_buffer<resource, N>;
+  using value_type = resource;
+  using pointer = value_type*;
+  using const_pointer = value_type const*;
+  using reference = value_type&;
+  using const_reference = value_type const&;
+  using iterator = pointer;
+  using const_iterator = const_pointer;
+  using size_type = std::size_t;
+
+  template <typename... Args>
+  static void construct(pointer p, Args&&... args) {
+    new (p) value_type{std::forward<Args>(args)...};
+    std::cout << __FUNCTION__ << " resource " << p << " <" << p->id() << "|" << (*p ? p->value() : -1) << ">\n";
+  }
+  static void destroy(pointer p) noexcept {
+    std::cout << __FUNCTION__ << " resource " << p << " <" << p->id() << "|" << (*p ? p->value() : -1) << ">\n";
+    p->~value_type();
+  }
+};
+}
+
+namespace {
+#endif
 using namespace archie;
 TEST_CASE("stack_buffer", "[array]") {
   using sut = stack_buffer<resource, 7>;
+  using value_t = typename sut::value_type;
   SECTION("ctor") {
     sut buff;
     REQUIRE(buff.capacity() == 7);
@@ -205,7 +240,7 @@ TEST_CASE("stack_buffer", "[array]") {
     REQUIRE(buff[0] == 1);
   }
   SECTION("initializer_list") {
-    sut buff = {resource(1), resource(2), resource(3), resource(4), resource(5)};
+    sut buff = {value_t(1), value_t(2), value_t(3), value_t(4), value_t(5)};
     REQUIRE(buff.size() == 5);
     REQUIRE(buff[0] == 1);
     REQUIRE(buff[1] == 2);
@@ -214,22 +249,22 @@ TEST_CASE("stack_buffer", "[array]") {
     REQUIRE(buff[4] == 5);
   }
   SECTION("copy ctor") {
-    sut const orig = {resource(1), resource(2), resource(3)};
+    sut const orig = {value_t(1), value_t(2), value_t(3)};
     sut cpy{orig};
     REQUIRE(cpy == orig);
   }
   SECTION("move ctor") {
-    sut const ref = {resource(1), resource(2), resource(3)};
+    sut const ref = {value_t(1), value_t(2), value_t(3)};
     sut orig{ref};
     sut cpy{std::move(orig)};
     REQUIRE(cpy == ref);
   }
   SECTION("copy assignment") {
-    sut const orig = {resource(1), resource(2), resource(3)};
+    sut const orig = {value_t(1), value_t(2), value_t(3)};
     sut cpy0;
-    sut cpy1 = {resource(4)};
-    sut cpy2 = {resource(5), resource(6), resource(7)};
-    sut cpy3 = {resource(8), resource(9), resource(10), resource(11)};
+    sut cpy1 = {value_t(4)};
+    sut cpy2 = {value_t(5), value_t(6), value_t(7)};
+    sut cpy3 = {value_t(8), value_t(9), value_t(10), value_t(11)};
 
     cpy0 = orig;
     REQUIRE(cpy0 == orig);
@@ -243,7 +278,7 @@ TEST_CASE("stack_buffer", "[array]") {
     REQUIRE(cpy3 == orig);
   }
   SECTION("eq cmp") {
-    sut lhs = {resource(1), resource(2), resource(3)};
+    sut lhs = {value_t(1), value_t(2), value_t(3)};
     sut rhs;
     rhs.emplace_back(1);
     rhs.emplace_back(2);
