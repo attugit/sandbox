@@ -171,8 +171,11 @@ private:
   using traits = array_traits<heap_buffer<T, Alloc>>;
 
 public:
+  using value_type = typename traits::value_type;
   using pointer = typename traits::pointer;
   using const_pointer = typename traits::const_pointer;
+  using reference = typename traits::reference;
+  using const_reference = typename traits::const_reference;
   using size_type = typename traits::size_type;
 
 private:
@@ -183,13 +186,52 @@ private:
     ~storage_t() {
       if (data_ != nullptr && capacity_ > 0) Alloc::deallocate(data_, capacity_);
     }
+    void realloc(size_type S) {
+      if (data_ != nullptr && capacity_ > 0) Alloc::deallocate(data_, capacity_);
+      data_ = S > 0 ? Alloc::allocate(S) : nullptr;
+      capacity_ = data_ != nullptr ? S : 0;
+    }
     pointer data_ = nullptr;
     size_type capacity_ = 0;
   } storage_;
 
+  void realloc(size_type S) {
+    this->clear();
+    storage_.realloc(S);
+    this->reset();
+  }
+
 public:
   heap_buffer() : base_t(), storage_() { this->reset(); }
   explicit heap_buffer(size_type S) : base_t(nullptr), storage_(S) { this->reset(); }
+  heap_buffer(std::initializer_list<value_type> init) : heap_buffer(init.size()) {
+    for (auto const& x : init) this->emplace_back(x);
+  }
+  heap_buffer(heap_buffer const& orig) : heap_buffer(orig.size()) {
+    for (auto const& x : orig) this->emplace_back(x);
+  }
+  heap_buffer(heap_buffer&& orig) : base_t(orig.end()), storage_() {
+    using std::swap;
+    swap(storage_.data_, orig.storage_.data_);
+    swap(storage_.capacity_, orig.storage_.capacity_);
+    orig.reset();
+  }
+  heap_buffer& operator=(heap_buffer const& orig) {
+    if (this->capacity() != orig.capacity()) this->realloc(orig.capacity());
+    this->assign([](const_reference r) -> const_reference { return r; },
+                 this->begin(),
+                 orig.begin(),
+                 orig.end());
+    return *this;
+  }
+  heap_buffer& operator=(heap_buffer&& orig) {
+    using std::swap;
+    swap(storage_.data_, orig.storage_.data_);
+    swap(storage_.capacity_, orig.storage_.capacity_);
+    this->end_ = orig.end_;
+    orig.reset();
+    return *this;
+  }
   ~heap_buffer() { this->clear(); }
 
   pointer data() { return this->storage_.data_; }
@@ -345,7 +387,7 @@ TEST_CASE("stack_buffer", "[array]") {
 }
 TEST_CASE("heap_buffer", "[array]") {
   using sut = heap_buffer<resource>;
-  // using value_t = typename sut::value_type;
+  using value_t = typename sut::value_type;
   SECTION("default ctor") {
     sut buff;
     REQUIRE(buff.capacity() == 0);
@@ -355,6 +397,60 @@ TEST_CASE("heap_buffer", "[array]") {
     sut buff(7);
     REQUIRE(buff.capacity() == 7);
     REQUIRE(buff.empty());
+  }
+  SECTION("emplace_back") {
+    sut buff(7);
+    buff.emplace_back(1);
+    REQUIRE(!buff.empty());
+    REQUIRE(buff.size() == 1);
+    REQUIRE(buff[0] == 1);
+  }
+  SECTION("initializer_list") {
+    sut buff = {value_t(1), value_t(2), value_t(3)};
+    REQUIRE(buff.size() == 3);
+    REQUIRE(buff[0] == 1);
+    REQUIRE(buff[1] == 2);
+    REQUIRE(buff[2] == 3);
+  }
+  SECTION("copy ctor") {
+    sut const orig = {value_t(1), value_t(2), value_t(3)};
+    sut cpy{orig};
+    REQUIRE(cpy == orig);
+  }
+  SECTION("move ctor") {
+    sut const ref = {value_t(1), value_t(2), value_t(3)};
+    sut orig{ref};
+    sut cpy{std::move(orig)};
+    REQUIRE(cpy == ref);
+    REQUIRE(orig.empty());
+  }
+  SECTION("copy assignment") {
+    sut const orig = {value_t(1), value_t(2), value_t(3)};
+    sut cpy0;
+    sut cpy1 = {value_t(4)};
+    sut cpy2 = {value_t(5), value_t(6), value_t(7)};
+    sut cpy3 = {value_t(8), value_t(9), value_t(10), value_t(11)};
+
+    cpy0 = orig;
+    REQUIRE(cpy0 == orig);
+    cpy1 = orig;
+    REQUIRE(cpy1 == orig);
+    cpy2 = orig;
+    REQUIRE(cpy2 == orig);
+    cpy3 = orig;
+    REQUIRE(cpy3 == orig);
+    cpy3 = cpy3;
+    REQUIRE(cpy3 == orig);
+  }
+  SECTION("eq cmp") {
+    sut lhs = {value_t(1), value_t(2), value_t(3)};
+    sut rhs(5);
+    rhs.emplace_back(1);
+    rhs.emplace_back(2);
+    rhs.emplace_back(3);
+    REQUIRE(lhs == rhs);
+    rhs.emplace_back(4);
+    REQUIRE(lhs != rhs);
   }
 }
 }
