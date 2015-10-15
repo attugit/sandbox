@@ -253,6 +253,70 @@ struct array_traits<heap_buffer<T, Alloc>>
 };
 }
 
+namespace archie {
+template <typename T, std::size_t N, typename Alloc = std::allocator<T>>
+struct mixed_buffer : base_buffer<mixed_buffer<T, N, Alloc>> {
+private:
+  using base_t = base_buffer<mixed_buffer<T, N, Alloc>>;
+  using traits = array_traits<mixed_buffer<T, N, Alloc>>;
+
+public:
+  using value_type = typename traits::value_type;
+  using pointer = typename traits::pointer;
+  using const_pointer = typename traits::const_pointer;
+  using reference = typename traits::reference;
+  using const_reference = typename traits::const_reference;
+  using size_type = typename traits::size_type;
+
+private:
+  struct storage_t : Alloc {
+    pointer data_ = nullptr;
+    union u {
+      u() {}
+      ~u() {}
+      size_type capacity_;
+      value_type stack_[N];
+    } u_;
+    storage_t() : data_(&(u_.stack_[0])) {}
+    bool is_on_heap() const { return data_ != &(u_.stack_[0]); }
+    size_type capacity() const { return is_on_heap() ? u_.capacity_ : N; }
+    explicit storage_t(size_type S) : data_(S > N ? Alloc::allocate(S) : &(u_.stack[0])) {
+      if (is_on_heap()) u_.capacity_ = S;
+    }
+    void realloc(size_type S) {
+      if (is_on_heap()) Alloc::deallocate(data_, capacity());
+      data_ = S > N ? Alloc::allocate(S) : &(u_.stack_[0]);
+      if (is_on_heap()) u_.capacity_ = S;
+    }
+    ~storage_t() {
+      if (is_on_heap()) Alloc::deallocate(data_, capacity());
+    }
+  } storage_;
+
+public:
+  mixed_buffer() : base_t() { this->reset(); }
+  explicit mixed_buffer(size_type S) : base_t(nullptr), storage_(S) { this->reset(); }
+  ~mixed_buffer() { this->clear(); }
+
+  pointer data() { return this->storage_.data_; }
+  const_pointer data() const { return this->storage_.data_; }
+  size_type capacity() const { return this->storage_.capacity(); }
+};
+
+template <typename T, std::size_t N, typename Alloc>
+struct array_traits<mixed_buffer<T, N, Alloc>>
+    : base_factory<typename Alloc::value_type, typename Alloc::pointer> {
+  using value_type = typename Alloc::value_type;
+  using pointer = typename Alloc::pointer;
+  using const_pointer = typename Alloc::const_pointer;
+  using reference = typename Alloc::reference;
+  using const_reference = typename Alloc::const_reference;
+  using size_type = typename Alloc::size_type;
+  using iterator = pointer;
+  using const_iterator = const_pointer;
+};
+}
+
 #include <catch.hpp>
 namespace {
 struct resource {
@@ -451,6 +515,14 @@ TEST_CASE("heap_buffer", "[array]") {
     REQUIRE(lhs == rhs);
     rhs.emplace_back(4);
     REQUIRE(lhs != rhs);
+  }
+}
+TEST_CASE("mixed_buffer", "[array]") {
+  using sut = mixed_buffer<resource, 7>;
+  SECTION("default ctor") {
+    sut buff;
+    REQUIRE(buff.empty());
+    REQUIRE(buff.capacity() == 7);
   }
 }
 }
