@@ -4,6 +4,15 @@ namespace archie {
 template <typename>
 struct array_traits;
 
+template <typename ValueType, typename Pointer = std::add_pointer_t<ValueType>>
+struct base_factory {
+  template <typename... Args>
+  static void construct(Pointer p, Args&&... args) {
+    new (p) ValueType{std::forward<Args>(args)...};
+  }
+  static void destroy(Pointer p) noexcept { p->~ValueType(); }
+};
+
 template <typename S>
 struct base_buffer {
   using storage_type = S;
@@ -14,7 +23,7 @@ private:
   storage_type const& self() const { return static_cast<storage_type const&>(*this); }
 
 public:
-  base_buffer() : end_(begin()) {}
+  base_buffer() : base_buffer(begin()) {}
 
   using reference = typename traits::reference;
   using const_reference = typename traits::const_reference;
@@ -49,6 +58,8 @@ public:
   }
 
 protected:
+  explicit base_buffer(iterator e) : end_(e) {}
+  void reset() { end_ = this->begin(); }
   template <typename F, typename Iterator>
   void assign(F f, iterator d_first, Iterator i_first, Iterator i_last) {
     if (d_first != i_first) {
@@ -85,6 +96,7 @@ namespace archie {
 template <typename T, std::size_t N>
 struct stack_buffer : base_buffer<stack_buffer<T, N>> {
 private:
+  using base_t = base_buffer<stack_buffer<T, N>>;
   using traits = array_traits<stack_buffer<T, N>>;
 
 public:
@@ -107,13 +119,13 @@ private:
 
 public:
   stack_buffer() = default;
-  stack_buffer(std::initializer_list<value_type> init) {
+  stack_buffer(std::initializer_list<value_type> init) : base_t() {
     for (auto const& x : init) this->emplace_back(x);
   }
-  stack_buffer(stack_buffer const& other) {
+  stack_buffer(stack_buffer const& other) : base_t() {
     for (auto const& x : other) this->emplace_back(x);
   }
-  stack_buffer(stack_buffer&& other) {
+  stack_buffer(stack_buffer&& other) : base_t() {
     for (auto& x : other) this->emplace_back(std::move(x));
   }
   stack_buffer& operator=(stack_buffer const& other) {
@@ -138,7 +150,7 @@ public:
 };
 
 template <typename T, std::size_t N>
-struct array_traits<stack_buffer<T, N>> {
+struct array_traits<stack_buffer<T, N>> : base_factory<T> {
   using value_type = T;
   using pointer = value_type*;
   using const_pointer = value_type const*;
@@ -147,12 +159,55 @@ struct array_traits<stack_buffer<T, N>> {
   using iterator = pointer;
   using const_iterator = const_pointer;
   using size_type = std::size_t;
+};
+}
 
-  template <typename... Args>
-  static void construct(pointer p, Args&&... args) {
-    new (p) value_type{std::forward<Args>(args)...};
-  }
-  static void destroy(pointer p) noexcept { p->~value_type(); }
+#include <memory>
+namespace archie {
+template <typename T, typename Alloc = std::allocator<T>>
+struct heap_buffer : base_buffer<heap_buffer<T, Alloc>> {
+private:
+  using base_t = base_buffer<heap_buffer<T, Alloc>>;
+  using traits = array_traits<heap_buffer<T, Alloc>>;
+
+public:
+  using pointer = typename traits::pointer;
+  using const_pointer = typename traits::const_pointer;
+  using size_type = typename traits::size_type;
+
+private:
+  struct storage_t : Alloc {
+    explicit storage_t(size_type S)
+        : data_(S > 0 ? Alloc::allocate(S) : nullptr), capacity_(data_ != nullptr ? S : 0) {}
+    storage_t() : storage_t(0) {}
+    ~storage_t() {
+      if (data_ != nullptr && capacity_ > 0) Alloc::deallocate(data_, capacity_);
+    }
+    pointer data_ = nullptr;
+    size_type capacity_ = 0;
+  } storage_;
+
+public:
+  heap_buffer() : base_t(), storage_() { this->reset(); }
+  explicit heap_buffer(size_type S) : base_t(nullptr), storage_(S) { this->reset(); }
+  ~heap_buffer() { this->clear(); }
+
+  pointer data() { return this->storage_.data_; }
+  const_pointer data() const { return this->storage_.data_; }
+  size_type capacity() const { return this->storage_.capacity_; }
+};
+
+template <typename T, typename Alloc>
+struct array_traits<heap_buffer<T, Alloc>>
+    : base_factory<typename Alloc::value_type, typename Alloc::pointer> {
+  using value_type = typename Alloc::value_type;
+  using pointer = typename Alloc::pointer;
+  using const_pointer = typename Alloc::const_pointer;
+  using reference = typename Alloc::reference;
+  using const_reference = typename Alloc::const_reference;
+  using size_type = typename Alloc::size_type;
+  using iterator = pointer;
+  using const_iterator = const_pointer;
 };
 }
 
@@ -286,6 +341,20 @@ TEST_CASE("stack_buffer", "[array]") {
     REQUIRE(lhs == rhs);
     rhs.emplace_back(4);
     REQUIRE(lhs != rhs);
+  }
+}
+TEST_CASE("heap_buffer", "[array]") {
+  using sut = heap_buffer<resource>;
+  // using value_t = typename sut::value_type;
+  SECTION("default ctor") {
+    sut buff;
+    REQUIRE(buff.capacity() == 0);
+    REQUIRE(buff.empty());
+  }
+  SECTION("ctor") {
+    sut buff(7);
+    REQUIRE(buff.capacity() == 7);
+    REQUIRE(buff.empty());
   }
 }
 }
