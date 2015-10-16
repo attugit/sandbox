@@ -293,6 +293,12 @@ private:
     }
   } storage_;
 
+  void realloc(size_type S) {
+    this->clear();
+    storage_.realloc(S);
+    this->reset();
+  }
+
 public:
   mixed_buffer() : base_t() { this->reset(); }
   explicit mixed_buffer(size_type S) : base_t(nullptr), storage_(S) { this->reset(); }
@@ -313,6 +319,14 @@ public:
     } else {
       for (auto& x : orig) this->emplace_back(std::move(x));
     }
+  }
+  mixed_buffer& operator=(mixed_buffer const& orig) {
+    if (this->capacity() != orig.capacity()) this->realloc(orig.capacity());
+    this->assign([](const_reference r) -> const_reference { return r; },
+                 this->begin(),
+                 orig.begin(),
+                 orig.end());
+    return *this;
   }
   ~mixed_buffer() { this->clear(); }
 
@@ -621,6 +635,79 @@ TEST_CASE("mixed_buffer", "[array]") {
     REQUIRE(cpy_h == ref_h);
     REQUIRE(orig_h.capacity() == stack_size);
     REQUIRE(orig_h.empty());
+  }
+  auto const make_sut = [](sut::size_type S) {
+    sut ret(S);
+    for (auto idx = 0u; idx < S; ++idx) { ret.emplace_back(static_cast<int>(idx)); }
+    return ret;
+  };
+  SECTION("copy assignment stack buffer") {
+    sut const orig_s = {value_t(100), value_t(101), value_t(102)};
+    sut cpy0;
+    sut cpy1 = make_sut(1);
+    sut cpy2 = make_sut(3);
+    sut cpy3 = make_sut(6);
+    sut cpy4 = make_sut(8);
+    sut cpy5 = make_sut(9);
+
+    cpy0 = orig_s;
+    REQUIRE(cpy0 == orig_s);
+    cpy1 = orig_s;
+    REQUIRE(cpy1 == orig_s);
+    cpy2 = orig_s;
+    REQUIRE(cpy2 == orig_s);
+    cpy3 = orig_s;
+    REQUIRE(cpy3 == orig_s);
+    cpy4 = orig_s;
+    REQUIRE(cpy4 == orig_s);
+    cpy5 = orig_s;
+    REQUIRE(cpy5 == orig_s);
+
+    cpy5 = cpy5;
+    REQUIRE(cpy5 == orig_s);
+  }
+  SECTION("copy assignment heap buffer") {
+    sut const orig_s = {value_t(100),
+                        value_t(101),
+                        value_t(102),
+                        value_t(103),
+                        value_t(104),
+                        value_t(105),
+                        value_t(106),
+                        value_t(107)};
+    sut cpy0;
+    sut cpy1 = make_sut(1);
+    sut cpy2 = make_sut(3);
+    sut cpy3 = make_sut(6);
+    sut cpy4 = make_sut(8);
+    sut cpy5 = make_sut(9);
+
+    cpy0 = orig_s;
+    REQUIRE(cpy0 == orig_s);
+    cpy1 = orig_s;
+    REQUIRE(cpy1 == orig_s);
+    cpy2 = orig_s;
+    REQUIRE(cpy2 == orig_s);
+    cpy3 = orig_s;
+    REQUIRE(cpy3 == orig_s);
+    cpy4 = orig_s;
+    REQUIRE(cpy4 == orig_s);
+    cpy5 = orig_s;
+    REQUIRE(cpy5 == orig_s);
+
+    cpy5 = cpy5;
+    REQUIRE(cpy5 == orig_s);
+  }
+
+  SECTION("eq cmp") {
+    sut lhs = {value_t(1), value_t(2), value_t(3)};
+    sut rhs(5);
+    rhs.emplace_back(1);
+    rhs.emplace_back(2);
+    rhs.emplace_back(3);
+    REQUIRE(lhs == rhs);
+    rhs.emplace_back(4);
+    REQUIRE(lhs != rhs);
   }
 }
 }
