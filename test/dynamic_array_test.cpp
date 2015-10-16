@@ -280,7 +280,7 @@ private:
     storage_t() : data_(&(u_.stack_[0])) {}
     bool is_on_heap() const { return data_ != &(u_.stack_[0]); }
     size_type capacity() const { return is_on_heap() ? u_.capacity_ : N; }
-    explicit storage_t(size_type S) : data_(S > N ? Alloc::allocate(S) : &(u_.stack[0])) {
+    explicit storage_t(size_type S) : data_(S > N ? Alloc::allocate(S) : &(u_.stack_[0])) {
       if (is_on_heap()) u_.capacity_ = S;
     }
     void realloc(size_type S) {
@@ -296,6 +296,24 @@ private:
 public:
   mixed_buffer() : base_t() { this->reset(); }
   explicit mixed_buffer(size_type S) : base_t(nullptr), storage_(S) { this->reset(); }
+  mixed_buffer(std::initializer_list<value_type> init) : mixed_buffer(init.size()) {
+    for (auto const& x : init) this->emplace_back(x);
+  }
+  mixed_buffer(mixed_buffer const& orig) : mixed_buffer(orig.size()) {
+    for (auto const& x : orig) this->emplace_back(x);
+  }
+  mixed_buffer(mixed_buffer&& orig) : mixed_buffer() {
+    if (orig.storage_.is_on_heap()) {
+      using std::swap;
+      swap(this->storage_.data_, orig.storage_.data_);
+      swap(this->storage_.u_.capacity_, orig.storage_.u_.capacity_);
+      swap(this->end_, orig.end_);
+      orig.storage_.data_ = &(orig.storage_.u_.stack_[0]);
+      orig.reset();
+    } else {
+      for (auto& x : orig) this->emplace_back(std::move(x));
+    }
+  }
   ~mixed_buffer() { this->clear(); }
 
   pointer data() { return this->storage_.data_; }
@@ -386,11 +404,12 @@ namespace {
 #endif
 using namespace archie;
 TEST_CASE("stack_buffer", "[array]") {
-  using sut = stack_buffer<resource, 7>;
+  enum { stack_size = 7 };
+  using sut = stack_buffer<resource, stack_size>;
   using value_t = typename sut::value_type;
   SECTION("ctor") {
     sut buff;
-    REQUIRE(buff.capacity() == 7);
+    REQUIRE(buff.capacity() == stack_size);
     REQUIRE(buff.empty());
   }
   SECTION("emplace_back") {
@@ -518,11 +537,90 @@ TEST_CASE("heap_buffer", "[array]") {
   }
 }
 TEST_CASE("mixed_buffer", "[array]") {
-  using sut = mixed_buffer<resource, 7>;
+  enum { stack_size = 7 };
+  using sut = mixed_buffer<resource, stack_size>;
+  using value_t = typename sut::value_type;
   SECTION("default ctor") {
     sut buff;
     REQUIRE(buff.empty());
-    REQUIRE(buff.capacity() == 7);
+    REQUIRE(buff.capacity() == stack_size);
+  }
+  SECTION("ctor") {
+    sut buff_s(stack_size - 1);
+    REQUIRE(buff_s.empty());
+    REQUIRE(buff_s.capacity() == stack_size);
+
+    sut buff_h(stack_size + 1);
+    REQUIRE(buff_h.empty());
+    REQUIRE(buff_h.capacity() == stack_size + 1);
+  }
+  SECTION("initializer_list") {
+    sut buff_s = {value_t(1), value_t(2), value_t(3), value_t(4), value_t(5)};
+    REQUIRE(buff_s.size() == 5);
+    REQUIRE(buff_s.capacity() == stack_size);
+    REQUIRE(buff_s[0] == 1);
+    REQUIRE(buff_s[1] == 2);
+    REQUIRE(buff_s[2] == 3);
+    REQUIRE(buff_s[3] == 4);
+    REQUIRE(buff_s[4] == 5);
+
+    sut buff_h = {value_t(1),
+                  value_t(2),
+                  value_t(3),
+                  value_t(4),
+                  value_t(5),
+                  value_t(6),
+                  value_t(7),
+                  value_t(8)};
+    REQUIRE(buff_h.size() == 8);
+    REQUIRE(buff_h.capacity() == 8);
+    REQUIRE(buff_h[0] == 1);
+    REQUIRE(buff_h[1] == 2);
+    REQUIRE(buff_h[2] == 3);
+    REQUIRE(buff_h[3] == 4);
+    REQUIRE(buff_h[4] == 5);
+    REQUIRE(buff_h[5] == 6);
+    REQUIRE(buff_h[6] == 7);
+    REQUIRE(buff_h[7] == 8);
+  }
+  SECTION("copy ctor") {
+    sut const orig_s = {value_t(1), value_t(2), value_t(3)};
+    sut cpy_s{orig_s};
+    REQUIRE(cpy_s == orig_s);
+
+    sut const orig_h = {value_t(1),
+                        value_t(2),
+                        value_t(3),
+                        value_t(4),
+                        value_t(5),
+                        value_t(6),
+                        value_t(7),
+                        value_t(8)};
+    sut cpy_h{orig_h};
+    REQUIRE(cpy_h == orig_h);
+  }
+  SECTION("move ctor") {
+    sut const ref_s = {value_t(1), value_t(2), value_t(3)};
+    sut orig_s{ref_s};
+    sut cpy_s{std::move(orig_s)};
+    REQUIRE(cpy_s == ref_s);
+    REQUIRE(orig_s.capacity() == stack_size);
+    REQUIRE(orig_s.size() == ref_s.size());
+
+    sut const ref_h = {value_t(1),
+                       value_t(2),
+                       value_t(3),
+                       value_t(4),
+                       value_t(5),
+                       value_t(6),
+                       value_t(7),
+                       value_t(8)};
+    sut orig_h{ref_h};
+    REQUIRE(orig_h.capacity() > stack_size);
+    sut cpy_h{std::move(orig_h)};
+    REQUIRE(cpy_h == ref_h);
+    REQUIRE(orig_h.capacity() == stack_size);
+    REQUIRE(orig_h.empty());
   }
 }
 }
