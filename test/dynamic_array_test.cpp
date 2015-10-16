@@ -2,6 +2,89 @@
 
 #include <memory>
 namespace archie {
+namespace detail {
+  template <typename Buffer, std::size_t N, typename Alloc>
+  struct storage_t : Alloc {
+    using size_type = typename Buffer::size_type;
+    using pointer = typename Buffer::pointer;
+    using const_pointer = typename Buffer::const_pointer;
+    using value_type = typename Buffer::value_type;
+
+  private:
+    pointer data_ = nullptr;
+    union u {
+      u() {}
+      ~u() {}
+      size_type capacity_;
+      value_type stack_[N];
+    } u_;
+
+  public:
+    storage_t() : data_(&(u_.stack_[0])) {}
+    explicit storage_t(size_type S) : data_(S > N ? Alloc::allocate(S) : &(u_.stack_[0])) {
+      if (is_on_heap()) u_.capacity_ = S;
+    }
+    storage_t(storage_t&& orig) : storage_t() { *this = std::move(orig); }
+    storage_t& operator=(storage_t&& orig) {
+      if (orig.is_on_heap()) {
+        using std::swap;
+        swap(data_, orig.data_);
+        swap(u_.capacity_, orig.u_.capacity_);
+        orig.data_ = &(orig.u_.stack_[0]);
+      }
+      return *this;
+    }
+    ~storage_t() {
+      if (is_on_heap()) Alloc::deallocate(data_, capacity());
+    }
+
+    bool is_on_heap() const { return data_ != &(u_.stack_[0]); }
+    pointer data() { return data_; }
+    const_pointer data() const { return data_; }
+    size_type capacity() const { return is_on_heap() ? u_.capacity_ : N; }
+    void realloc(size_type S) {
+      if (is_on_heap()) Alloc::deallocate(data_, capacity());
+      data_ = S > N ? Alloc::allocate(S) : &(u_.stack_[0]);
+      if (is_on_heap()) u_.capacity_ = S;
+    }
+  };
+
+  template <typename Buffer, typename Alloc>
+  struct storage_t<Buffer, 0, Alloc> : Alloc {
+    using size_type = typename Buffer::size_type;
+    using pointer = typename Buffer::pointer;
+    using const_pointer = typename Buffer::const_pointer;
+
+    storage_t() : storage_t(0) {}
+    explicit storage_t(size_type S)
+        : data_(S > 0 ? Alloc::allocate(S) : nullptr), capacity_(data_ != nullptr ? S : 0) {}
+    storage_t(storage_t&& orig) : storage_t(0) { *this = std::move(orig); }
+    storage_t& operator=(storage_t&& orig) {
+      using std::swap;
+      swap(data_, orig.data_);
+      swap(capacity_, orig.capacity_);
+      return *this;
+    }
+    ~storage_t() {
+      if (data() != nullptr && capacity() > 0) Alloc::deallocate(data(), capacity());
+    }
+
+    constexpr bool is_on_heap() const { return true; }
+    pointer data() { return data_; }
+    const_pointer data() const { return data_; }
+    size_type capacity() const { return capacity_; }
+    void realloc(size_type S) {
+      if (data() != nullptr && capacity() > 0) Alloc::deallocate(data(), capacity());
+      data_ = S > 0 ? Alloc::allocate(S) : nullptr;
+      capacity_ = data_ != nullptr ? S : 0;
+    }
+
+  private:
+    pointer data_ = nullptr;
+    size_type capacity_ = 0;
+  };
+}
+
 template <typename T, typename Alloc = std::allocator<T>>
 struct heap_buffer : base_buffer<heap_buffer<T, Alloc>> {
 private:
@@ -17,21 +100,8 @@ public:
   using size_type = typename traits::size_type;
 
 private:
-  struct storage_t : Alloc {
-    explicit storage_t(size_type S)
-        : data_(S > 0 ? Alloc::allocate(S) : nullptr), capacity_(data_ != nullptr ? S : 0) {}
-    storage_t() : storage_t(0) {}
-    ~storage_t() {
-      if (data_ != nullptr && capacity_ > 0) Alloc::deallocate(data_, capacity_);
-    }
-    void realloc(size_type S) {
-      if (data_ != nullptr && capacity_ > 0) Alloc::deallocate(data_, capacity_);
-      data_ = S > 0 ? Alloc::allocate(S) : nullptr;
-      capacity_ = data_ != nullptr ? S : 0;
-    }
-    pointer data_ = nullptr;
-    size_type capacity_ = 0;
-  } storage_;
+  using storage_t = detail::storage_t<heap_buffer<T, Alloc>, 0, Alloc>;
+  storage_t storage_;
 
   void realloc(size_type S) {
     this->clear();
@@ -50,8 +120,7 @@ public:
   }
   heap_buffer(heap_buffer&& orig) : base_t(orig.end()), storage_() {
     using std::swap;
-    swap(storage_.data_, orig.storage_.data_);
-    swap(storage_.capacity_, orig.storage_.capacity_);
+    swap(this->storage_, orig.storage_);
     orig.reset();
   }
   heap_buffer& operator=(heap_buffer const& orig) {
@@ -64,17 +133,16 @@ public:
   }
   heap_buffer& operator=(heap_buffer&& orig) {
     using std::swap;
-    swap(storage_.data_, orig.storage_.data_);
-    swap(storage_.capacity_, orig.storage_.capacity_);
+    swap(this->storage_, orig.storage_);
     this->end_ = orig.end_;
     orig.reset();
     return *this;
   }
   ~heap_buffer() { this->clear(); }
 
-  pointer data() { return this->storage_.data_; }
-  const_pointer data() const { return this->storage_.data_; }
-  size_type capacity() const { return this->storage_.capacity_; }
+  pointer data() { return this->storage_.data(); }
+  const_pointer data() const { return this->storage_.data(); }
+  size_type capacity() const { return this->storage_.capacity(); }
 };
 
 template <typename T, typename Alloc>
@@ -107,29 +175,8 @@ public:
   using size_type = typename traits::size_type;
 
 private:
-  struct storage_t : Alloc {
-    pointer data_ = nullptr;
-    union u {
-      u() {}
-      ~u() {}
-      size_type capacity_;
-      value_type stack_[N];
-    } u_;
-    storage_t() : data_(&(u_.stack_[0])) {}
-    bool is_on_heap() const { return data_ != &(u_.stack_[0]); }
-    size_type capacity() const { return is_on_heap() ? u_.capacity_ : N; }
-    explicit storage_t(size_type S) : data_(S > N ? Alloc::allocate(S) : &(u_.stack_[0])) {
-      if (is_on_heap()) u_.capacity_ = S;
-    }
-    void realloc(size_type S) {
-      if (is_on_heap()) Alloc::deallocate(data_, capacity());
-      data_ = S > N ? Alloc::allocate(S) : &(u_.stack_[0]);
-      if (is_on_heap()) u_.capacity_ = S;
-    }
-    ~storage_t() {
-      if (is_on_heap()) Alloc::deallocate(data_, capacity());
-    }
-  } storage_;
+  using storage_t = detail::storage_t<mixed_buffer<T, N, Alloc>, N, Alloc>;
+  storage_t storage_;
 
   void realloc(size_type S) {
     this->clear();
@@ -146,18 +193,7 @@ public:
   mixed_buffer(mixed_buffer const& orig) : mixed_buffer(orig.size()) {
     for (auto const& x : orig) this->emplace_back(x);
   }
-  mixed_buffer(mixed_buffer&& orig) : mixed_buffer() {
-    if (orig.storage_.is_on_heap()) {
-      using std::swap;
-      swap(this->storage_.data_, orig.storage_.data_);
-      swap(this->storage_.u_.capacity_, orig.storage_.u_.capacity_);
-      swap(this->end_, orig.end_);
-      orig.storage_.data_ = &(orig.storage_.u_.stack_[0]);
-      orig.reset();
-    } else {
-      for (auto& x : orig) this->emplace_back(std::move(x));
-    }
-  }
+  mixed_buffer(mixed_buffer&& orig) : mixed_buffer() { *this = std::move(orig); }
   mixed_buffer& operator=(mixed_buffer const& orig) {
     if (this->capacity() != orig.capacity()) this->realloc(orig.capacity());
     this->assign([](const_reference r) -> const_reference { return r; },
@@ -166,10 +202,22 @@ public:
                  orig.end());
     return *this;
   }
+  mixed_buffer& operator=(mixed_buffer&& orig) {
+    this->realloc(0);
+    if (orig.storage_.is_on_heap()) {
+      using std::swap;
+      swap(this->storage_, orig.storage_);
+      swap(this->end_, orig.end_);
+      orig.reset();
+    } else {
+      for (auto& x : orig) this->emplace_back(std::move(x));
+    }
+    return *this;
+  }
   ~mixed_buffer() { this->clear(); }
 
-  pointer data() { return this->storage_.data_; }
-  const_pointer data() const { return this->storage_.data_; }
+  pointer data() { return this->storage_.data(); }
+  const_pointer data() const { return this->storage_.data(); }
   size_type capacity() const { return this->storage_.capacity(); }
 };
 
