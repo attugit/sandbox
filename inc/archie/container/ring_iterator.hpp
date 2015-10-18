@@ -5,6 +5,7 @@
 #include <archie/container/heap_buffer.hpp>
 
 namespace archie {
+enum class primacy_t { primal, repeated };
 template <typename Iterator>
 struct ring_iterator : std::iterator<typename std::iterator_traits<Iterator>::iterator_category,
                                      typename std::iterator_traits<Iterator>::value_type,
@@ -23,7 +24,7 @@ public:
   ///--------------------------------------------
   template <typename Iter, typename Distance0, typename Distance1>
   ring_iterator(Iter begin, Distance0 last, Distance1 offset)
-      : front_(begin), to_last_(last), offset_(offset) {}
+      : front_(begin), to_last_(last != 0 ? last : 1), offset_(offset) {}
   template <typename Iter, typename Distance>
   ring_iterator(Iter begin, Iter last, Distance offset)
       : ring_iterator(begin, std::distance(begin, last), offset) {}
@@ -66,80 +67,94 @@ public:
     return lhs.offset_ < rhs.offset_;
   }
   ///--------------------------------------------
-  friend void normalize(ring_iterator& it) {
-    it.offset_ = it.to_last_ != 0 ? it.offset_ % it.to_last_ : 0;
+  friend void normalize(ring_iterator& it) { it.offset_ %= it.to_last_; }
+  primacy_t primacy() const {
+    return (this->offset_ >= 0 && this->offset_ < this->to_last_) ? primacy_t::primal
+                                                                  : primacy_t::repeated;
   }
 
 private:
-  iterator normalize() const { return std::next(front_, to_last_ != 0 ? offset_ % to_last_ : 0); }
+  iterator normalize() const { return std::next(front_, offset_ % to_last_); }
   ///--------------------------------------------
   iterator front_;
   difference_type to_last_;
   difference_type offset_;
 };
 ///--------------------------------------------
-template <typename Container>
-bool operator!=(ring_iterator<Container> const& lhs, ring_iterator<Container> const& rhs) {
+template <typename Iterator>
+bool operator!=(ring_iterator<Iterator> const& lhs, ring_iterator<Iterator> const& rhs) {
   return !(lhs == rhs);
 }
-template <typename Container>
-bool operator>(ring_iterator<Container> const& lhs, ring_iterator<Container> const& rhs) {
+template <typename Iterator>
+bool operator>(ring_iterator<Iterator> const& lhs, ring_iterator<Iterator> const& rhs) {
   return rhs < lhs;
 }
-template <typename Container>
-bool operator>=(ring_iterator<Container> const& lhs, ring_iterator<Container> const& rhs) {
+template <typename Iterator>
+bool operator>=(ring_iterator<Iterator> const& lhs, ring_iterator<Iterator> const& rhs) {
   return !(lhs < rhs);
 }
-template <typename Container>
-bool operator<=(ring_iterator<Container> const& lhs, ring_iterator<Container> const& rhs) {
+template <typename Iterator>
+bool operator<=(ring_iterator<Iterator> const& lhs, ring_iterator<Iterator> const& rhs) {
   return !(rhs < lhs);
 }
 ///--------------------------------------------
-template <typename Container, typename Distance>
-ring_iterator<Container> operator+(ring_iterator<Container> const& lhs, Distance rhs) {
-  ring_iterator<Container> ret = lhs;
+template <typename Iterator, typename Distance>
+ring_iterator<Iterator> operator+(ring_iterator<Iterator> const& lhs, Distance rhs) {
+  ring_iterator<Iterator> ret = lhs;
   ret += rhs;
   return ret;
 }
-template <typename Container, typename Distance>
-ring_iterator<Container> operator+(Distance lhs, ring_iterator<Container> const& rhs) {
+template <typename Iterator, typename Distance>
+ring_iterator<Iterator> operator+(Distance lhs, ring_iterator<Iterator> const& rhs) {
   return rhs + lhs;
 }
-template <typename Container>
-ring_iterator<Container>& operator++(ring_iterator<Container>& lhs) {
+template <typename Iterator>
+ring_iterator<Iterator>& operator++(ring_iterator<Iterator>& lhs) {
   lhs += 1;
   return lhs;
 }
-template <typename Container>
-ring_iterator<Container> operator++(ring_iterator<Container>& lhs, int) {
-  ring_iterator<Container> ret = lhs;
+template <typename Iterator>
+ring_iterator<Iterator> operator++(ring_iterator<Iterator>& lhs, int) {
+  ring_iterator<Iterator> ret = lhs;
   ++lhs;
   return ret;
 }
-template <typename Container, typename Distance>
-ring_iterator<Container>& operator-=(ring_iterator<Container>& lhs, Distance rhs) {
+template <typename Iterator, typename Distance>
+ring_iterator<Iterator>& operator-=(ring_iterator<Iterator>& lhs, Distance rhs) {
   return lhs += (-rhs);
 }
-template <typename Container>
-ring_iterator<Container>& operator--(ring_iterator<Container>& lhs) {
+template <typename Iterator>
+ring_iterator<Iterator>& operator--(ring_iterator<Iterator>& lhs) {
   lhs -= 1;
   return lhs;
 }
-template <typename Container>
-ring_iterator<Container> operator--(ring_iterator<Container>& lhs, int) {
-  ring_iterator<Container> ret = lhs;
+template <typename Iterator>
+ring_iterator<Iterator> operator--(ring_iterator<Iterator>& lhs, int) {
+  ring_iterator<Iterator> ret = lhs;
   --lhs;
   return ret;
 }
-template <typename Container, typename Distance>
-ring_iterator<Container> operator-(ring_iterator<Container> const& lhs, Distance rhs) {
+template <typename Iterator, typename Distance>
+ring_iterator<Iterator> operator-(ring_iterator<Iterator> const& lhs, Distance rhs) {
   return lhs + (-rhs);
 }
 ///--------------------------------------------
-template <typename Container>
-ring_iterator<Container> norm(ring_iterator<Container> const& it) {
-  ring_iterator<Container> ret = it;
+template <typename Iterator>
+ring_iterator<Iterator> norm(ring_iterator<Iterator> const& it) {
+  ring_iterator<Iterator> ret = it;
   normalize(ret);
   return ret;
+}
+template <typename Iterator>
+primacy_t primacy(ring_iterator<Iterator> const& it) {
+  return it.primacy();
+}
+template <typename Iterator>
+bool is_repeated(ring_iterator<Iterator> const& it) {
+  return primacy(it) == primacy_t::repeated;
+}
+template <typename Iterator>
+bool is_primal(ring_iterator<Iterator> const& it) {
+  return primacy(it) == primacy_t::primal;
 }
 }
