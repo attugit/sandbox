@@ -1,45 +1,12 @@
 #include <archie/container/stack_buffer.hpp>
 #include <archie/container/heap_buffer.hpp>
-
+#include <resource.hpp>
 #include <catch.hpp>
 namespace {
-struct resource {
-  static int get_id() {
-    static int id = 0;
-    return id++;
-  };
-  explicit resource(int i) : ptr(new int(i)), id_(get_id()) {}
-  resource() : resource(0) {}
-  resource(resource const& r) : resource(*(r.ptr)) {}
-  resource(resource&& r) : ptr(r.ptr), id_(get_id()) { r.ptr = nullptr; }
-  resource& operator=(resource const& r) {
-    *ptr = *r.ptr;
-    return *this;
-  }
-  resource& operator=(resource&& r) {
-    using std::swap;
-    swap(ptr, r.ptr);
-    return *this;
-  }
-  ~resource() {
-    if (ptr) delete ptr;
-  }
-  explicit operator bool() const { return ptr != nullptr; }
-  operator int() const { return *ptr; }
-  int id() const { return id_; }
-  int value() const { return *ptr; }
-  bool operator==(resource const& r) const { return *ptr == *r.ptr; }
-  bool operator!=(resource const& r) const { return !(*this == r); }
-
-private:
-  int* ptr = nullptr;
-  int id_ = 0;
-};
-
 using namespace archie;
 TEST_CASE("stack_buffer", "[array]") {
   enum { stack_size = 7 };
-  using sut = stack_buffer<resource, stack_size>;
+  using sut = stack_buffer<test::resource, stack_size>;
   using value_t = typename sut::value_type;
   SECTION("ctor") {
     sut buff;
@@ -103,7 +70,7 @@ TEST_CASE("stack_buffer", "[array]") {
   }
 }
 TEST_CASE("heap_buffer", "[array]") {
-  using sut = heap_buffer<resource>;
+  using sut = heap_buffer<test::resource>;
   using value_t = typename sut::value_type;
   SECTION("default ctor") {
     sut buff;
@@ -172,7 +139,7 @@ TEST_CASE("heap_buffer", "[array]") {
 }
 TEST_CASE("mixed_buffer", "[array]") {
   enum { stack_size = 7 };
-  using sut = mixed_buffer<resource, stack_size>;
+  using sut = mixed_buffer<test::resource, stack_size>;
   using value_t = typename sut::value_type;
   SECTION("default ctor") {
     sut buff;

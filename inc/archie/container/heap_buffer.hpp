@@ -100,6 +100,7 @@ public:
   using reference = typename traits::reference;
   using const_reference = typename traits::const_reference;
   using size_type = typename traits::size_type;
+  using difference_type = typename traits::difference_type;
 
 private:
   using storage_t = detail::storage_t<mixed_buffer<T, N, Alloc>, N, Alloc>;
@@ -157,6 +158,7 @@ struct array_traits<mixed_buffer<T, N, Alloc>>
   using reference = typename Alloc::reference;
   using const_reference = typename Alloc::const_reference;
   using size_type = typename Alloc::size_type;
+  using difference_type = typename Alloc::difference_type;
   using iterator = pointer;
   using const_iterator = const_pointer;
 };
