@@ -16,6 +16,7 @@ public:
   using reference = typename traits::reference;
   using const_reference = typename traits::const_reference;
   using size_type = typename traits::size_type;
+  using difference_type = typename traits::difference_type;
   using iterator = typename traits::iterator;
   using const_iterator = typename traits::const_iterator;
 
@@ -69,5 +70,6 @@ struct array_traits<stack_buffer<T, N>> : base_factory<T> {
   using iterator = pointer;
   using const_iterator = const_pointer;
   using size_type = std::size_t;
+  using difference_type = std::ptrdiff_t;
 };
 }

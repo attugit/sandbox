@@ -101,6 +101,8 @@ public:
   using const_reference = typename traits::const_reference;
   using size_type = typename traits::size_type;
   using difference_type = typename traits::difference_type;
+  using iterator = typename traits::iterator;
+  using const_iterator = typename traits::const_iterator;
 
 private:
   using storage_t = detail::storage_t<mixed_buffer<T, N, Alloc>, N, Alloc>;
