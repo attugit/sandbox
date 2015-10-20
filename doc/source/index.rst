@@ -9,9 +9,14 @@ Welcome to sandbox's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+    :maxdepth: 2
 
-
+    alias
+    containers
+    inapt
+    opaque
+    pure_function
+    resource
 
 Indices and tables
 ==================
