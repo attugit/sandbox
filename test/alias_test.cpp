@@ -52,5 +52,13 @@ TEST_CASE("alias", "[alias]") {
     REQUIRE(array[1] == 1);
     REQUIRE(array[2] == 2);
   }
+  SECTION("cross-const") {
+    const int ci = 1;
+    int i = 2;
+    auto ca = alias(ci);
+    REQUIRE(unwrap(ca) == 1);
+    ca = rebind(i);
+    REQUIRE(unwrap(ca) == 2);
+  }
 }
 }

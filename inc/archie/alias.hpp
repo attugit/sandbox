@@ -6,8 +6,8 @@ namespace archie {
 template <typename>
 struct alias_t;
 
-template <typename T>
-using rebind_t = typename alias_t<T>::rebind_t;
+template <typename>
+struct rebind_t;
 
 namespace detail {
   struct alias_ {
@@ -33,12 +33,36 @@ namespace detail {
     constexpr decltype(auto) operator()(alias_t<T> a) const noexcept {
       return *a;
     }
+    template <typename T>
+    constexpr decltype(auto) operator()(rebind_t<T> r) const noexcept {
+      return *r.data_;
+    }
   };
 }
 
 static constexpr auto const& alias = meta::instance<detail::alias_>();
 static constexpr auto const& rebind = meta::instance<detail::rebind_>();
 static constexpr auto const& unwrap = meta::instance<detail::unwrap_>();
+
+template <typename T>
+struct rebind_t {
+  friend alias_t<T>;
+  friend detail::unwrap_;
+  using reference = typename alias_t<T>::reference;
+  using pointer = typename alias_t<T>::pointer;
+
+  explicit rebind_t(reference x) noexcept : data_(std::addressof(x)) {}
+  template <typename U>
+  explicit rebind_t(rebind_t<U> r) noexcept : data_(std::addressof(unwrap(r.data_))) {}
+  template <typename U>
+  rebind_t& operator=(rebind_t<U> r) noexcept {
+    data_ = std::addressof(unwrap(r));
+    return *this;
+  }
+
+private:
+  pointer data_;
+};
 
 template <typename T>
 struct alias_t {
@@ -48,14 +72,6 @@ struct alias_t {
   using reference = value_type&;
   using const_reference = value_type const&;
 
-  struct rebind_t {
-    friend alias_t;
-    rebind_t(reference x) noexcept : data_(std::addressof(x)) {}
-
-  private:
-    pointer data_;
-  };
-
   alias_t() = delete;
   alias_t(value_type&&) = delete;
   alias_t& operator=(alias_t const&) = delete;
@@ -63,13 +79,15 @@ struct alias_t {
   alias_t(alias_t&&) noexcept = default;
   alias_t& operator=(alias_t&&) noexcept = default;
 
-  explicit alias_t(rebind_t r) noexcept : ref_(r) {}
+  template <typename U>
+  explicit alias_t(rebind_t<U> r) noexcept : ref_(r) {}
   explicit alias_t(reference indata) noexcept : ref_(indata) {}
 
   template <typename U>
   alias_t(alias_t<U> const& a) noexcept : ref_(unwrap(a)) {}
 
-  alias_t& operator=(rebind_t r) noexcept {
+  template <typename U>
+  alias_t& operator=(rebind_t<U> r) noexcept {
     ref_ = r;
     return *this;
   }
@@ -91,7 +109,7 @@ struct alias_t {
   const_pointer operator->() const noexcept { return ref_.data_; }
 
 private:
-  rebind_t ref_;
+  rebind_t<T> ref_;
 };
 
 template <typename T>
