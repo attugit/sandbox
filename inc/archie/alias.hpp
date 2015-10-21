@@ -41,24 +41,19 @@ namespace detail {
 }
 
 static constexpr auto const& alias = meta::instance<detail::alias_>();
+static constexpr auto const& ref = alias;
 static constexpr auto const& rebind = meta::instance<detail::rebind_>();
 static constexpr auto const& unwrap = meta::instance<detail::unwrap_>();
 
 template <typename T>
 struct rebind_t {
-  friend alias_t<T>;
   friend detail::unwrap_;
   using reference = typename alias_t<T>::reference;
   using pointer = typename alias_t<T>::pointer;
 
   explicit rebind_t(reference x) noexcept : data_(std::addressof(x)) {}
   template <typename U>
-  explicit rebind_t(rebind_t<U> r) noexcept : data_(std::addressof(unwrap(r.data_))) {}
-  template <typename U>
-  rebind_t& operator=(rebind_t<U> r) noexcept {
-    data_ = std::addressof(unwrap(r));
-    return *this;
-  }
+  explicit rebind_t(rebind_t<U> r) noexcept : rebind_t(unwrap(r)) {}
 
 private:
   pointer data_;
@@ -81,32 +76,32 @@ struct alias_t {
 
   template <typename U>
   explicit alias_t(rebind_t<U> r) noexcept : ref_(r) {}
-  explicit alias_t(reference indata) noexcept : ref_(indata) {}
+  explicit alias_t(reference r) noexcept : ref_(r) {}
 
   template <typename U>
-  alias_t(alias_t<U> const& a) noexcept : ref_(unwrap(a)) {}
+  alias_t(alias_t<U> const& a) noexcept : ref_(rebind(a)) {}
 
   template <typename U>
   alias_t& operator=(rebind_t<U> r) noexcept {
-    ref_ = r;
+    ref_ = rebind_t<T>(r);
     return *this;
   }
 
-  alias_t& operator=(const_reference x) noexcept {
+  alias_t& operator=(const_reference x) {
     if (std::addressof(unwrap(*this)) != std::addressof(x)) unwrap(*this) = x;
     return *this;
   }
 
-  alias_t& operator=(value_type&& x) noexcept {
+  alias_t& operator=(value_type&& x) {
     if (std::addressof(unwrap(*this)) != std::addressof(x)) unwrap(*this) = std::move(x);
     return *this;
   }
 
-  reference operator*() noexcept { return *ref_.data_; }
-  const_reference operator*() const noexcept { return *ref_.data_; }
+  reference operator*() noexcept { return unwrap(ref_); }
+  const_reference operator*() const noexcept { return unwrap(ref_); }
 
-  pointer operator->() noexcept { return ref_.data_; }
-  const_pointer operator->() const noexcept { return ref_.data_; }
+  pointer operator->() noexcept { return &unwrap(ref_); }
+  const_pointer operator->() const noexcept { return &unwrap(ref_); }
 
 private:
   rebind_t<T> ref_;
