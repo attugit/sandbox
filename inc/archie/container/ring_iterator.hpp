@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <functional>
 #include <archie/container/heap_buffer.hpp>
+#include <archie/assignable_const.hpp>
 
 namespace archie {
 enum class primacy_t { primal, repeated };
@@ -74,10 +75,10 @@ public:
   }
 
 private:
-  iterator normalize() const { return std::next(front_, offset_ % to_last_); }
+  iterator normalize() const { return std::next(static_cast<iterator const&>(front_), offset_ % to_last_); }
   ///--------------------------------------------
-  iterator front_;
-  difference_type to_last_;
+  assignable_const<iterator> front_;
+  assignable_const<difference_type> to_last_;
   difference_type offset_;
 };
 ///--------------------------------------------
