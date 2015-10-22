@@ -12,6 +12,39 @@ Include
 Examples
 ========
 
+Rebinding references
+--------------------
+
+.. code-block:: cpp
+    :linenos:
+
+    int x = 0;
+    int y = 1;
+    auto a = alias(x);
+    REQUIRE(unwrap(a) == 0);
+    a = 2;
+    REQUIRE(x == 2);
+    a = rebind(y);
+    a = 3;
+    REQUIRE(x == 2);
+    REQUIRE(y == 3);
+
+Cross-const rebinding
+---------------------
+
+.. code-block:: cpp
+    :linenos:
+
+    const int ci = 1;
+    int i = 2;
+    auto ca = alias(ci);
+    REQUIRE(unwrap(ca) == 1);
+    ca = rebind(i);
+    REQUIRE(unwrap(ca) == 2);
+
+Sorting by address
+------------------
+
 .. code-block:: cpp
     :linenos:
 
@@ -22,22 +55,30 @@ Examples
     vec.emplace_back(array[0]);
 
     std::sort(std::begin(vec), std::end(vec));
-    REQUIRE(*(vec[0]) == 3);
-    REQUIRE(*(vec[1]) == 1);
-    REQUIRE(*(vec[2]) == 2);
+    REQUIRE(unwrap(vec[0]) == 3);
+    REQUIRE(unwrap(vec[1]) == 1);
+    REQUIRE(unwrap(vec[2]) == 2);
 
     std::sort(std::begin(vec), std::end(vec),
       [](auto const& lhs, auto const& rhs) {
-        return *lhs < *rhs;
+        return unwrap(lhs) < unwrap(rhs);
       }
     );
-
-    REQUIRE(*(vec[0]) == 1);
-    REQUIRE(*(vec[1]) == 2);
-    REQUIRE(*(vec[2]) == 3);
+    REQUIRE(unwrap(vec[0]) == 1);
+    REQUIRE(unwrap(vec[1]) == 2);
+    REQUIRE(unwrap(vec[2]) == 3);
 
 API Reference
 =============
+
+rebind_t<T>
+-----------
+
+.. cpp:class:: rebind_t<T>
+
+    .. cpp:type:: reference
+    .. cpp:function:: explicit rebind_t(reference x) noexcept
+    .. cpp:function:: explicit rebind_t(rebind_t<U>) noexcept
 
 alias_t<T>
 ----------
@@ -49,35 +90,28 @@ alias_t<T>
     .. cpp:type:: const_pointer
     .. cpp:type:: reference
     .. cpp:type:: const_reference
-    .. cpp:class:: rebind_t
 
-        .. cpp:function:: rebind_t(reference)
-        .. cpp:function:: rebind_t(rebind_t const&) = default
+    .. cpp:function:: alias_t() = delete
+    .. cpp:function:: alias_t(value_type&&) = delete
+    .. cpp:function:: alias_t& operator=(alias_t const&) = delete
 
-    .. cpp:function:: alias_t<T>() = delete
-    .. cpp:function:: alias_t<T>(value_type &&) = delete
-    .. cpp:function:: alias_t<T>(alias_t<T> const&) = default
-    .. cpp:function:: alias_t<T>(alias_t<T> &&) = default
-    .. cpp:function:: alias_t<T>(alias_t<U> const&)
-    .. cpp:function:: explicit alias_t<T>(rebind_t)
+    .. cpp:function:: alias_t(alias_t const&) noexcept = default
+    .. cpp:function:: alias_t(alias_t&&) noexcept = default
+    .. cpp:function:: alias_t& operator=(alias_t&&) noexcept = default
 
-        :param rebind_t: rebind to create alias_t from
+    .. cpp:function:: explicit alias_t(rebind_t<U>)
+    .. cpp:function:: explicit alias_t(reference) noexcept
+    .. cpp:function:: alias_t(alias_t<U> const&) noexcept
 
-    .. cpp:function:: explicit alias_t<T>(reference)
-
-        :param reference: reference to capture in alias_t
-
-    .. cpp:function:: alias_t<T>& operator=(alias_t<T> const&) = delete
-    .. cpp:function:: alias_t<T>& operator=(alias_t<T>&&) = default
-    .. cpp:function:: alias_t<T>& operator=(rebind_t)
+    .. cpp:function:: alias_t<T>& operator=(rebind_t<U>) noexcept
     .. cpp:function:: alias_t<T>& operator=(const_reference)
     .. cpp:function:: alias_t<T>& operator=(value_type&&)
-    .. cpp:function:: reference get()
-    .. cpp:function:: const_reference get() const
-    .. cpp:function:: reference operator*()
-    .. cpp:function:: const_reference operator*() const
-    .. cpp:function:: pointer operator->()
-    .. cpp:function:: const_pointer operator->() const
+
+    .. cpp:function:: reference operator*() noexcept
+    .. cpp:function:: const_reference operator*() const noexcept
+
+    .. cpp:function:: pointer operator->() noexcept
+    .. cpp:function:: const_pointer operator->() const noexcept
 
 Comparison operators
 --------------------
@@ -94,10 +128,9 @@ Compare address of captured references.
 Free function objects
 ---------------------
 
-.. cpp:type:: rebind_t<T>
-
 .. cpp:function:: alias_t<T> alias(T&) noexcept
 .. cpp:function:: rebind_t<T> rebind(T&) noexcept
 .. cpp:function:: rebind_t<T> rebind(alias_t<T>) noexcept
-.. cpp:function:: typename alias_t<T>::reference unwrap(alias_t<T>) noexcept
+.. cpp:function:: T& unwrap(rebind_t<T>) noexcept
+.. cpp:function:: T& unwrap(alias_t<T>) noexcept
 

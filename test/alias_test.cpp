@@ -23,11 +23,11 @@ TEST_CASE("alias", "[alias]") {
     const int y = 1;
     auto a = alias(x);
     auto b = alias(x);
-    REQUIRE(*a == 0);
+    REQUIRE(unwrap(a) == 0);
     a = rebind(y);
-    REQUIRE(*a == 1);
+    REQUIRE(unwrap(a) == 1);
     a = rebind(b);
-    REQUIRE(*a == 0);
+    REQUIRE(unwrap(a) == 0);
   }
   SECTION("sorting") {
     std::array<int, 3> array = {{3, 1, 2}};
@@ -36,18 +36,18 @@ TEST_CASE("alias", "[alias]") {
     vec.emplace_back(array[2]);
     vec.emplace_back(array[0]);
     std::sort(std::begin(vec), std::end(vec));
-    REQUIRE(*(vec[0]) == 3);
-    REQUIRE(*(vec[1]) == 1);
-    REQUIRE(*(vec[2]) == 2);
+    REQUIRE(unwrap(vec[0]) == 3);
+    REQUIRE(unwrap(vec[1]) == 1);
+    REQUIRE(unwrap(vec[2]) == 2);
     REQUIRE(array[0] == 3);
     REQUIRE(array[1] == 1);
     REQUIRE(array[2] == 2);
     std::sort(std::begin(vec), std::end(vec), [](auto const& lhs, auto const& rhs) {
-      return *lhs < *rhs;
+      return unwrap(lhs) < unwrap(rhs);
     });
-    REQUIRE(*(vec[0]) == 1);
-    REQUIRE(*(vec[1]) == 2);
-    REQUIRE(*(vec[2]) == 3);
+    REQUIRE(unwrap(vec[0]) == 1);
+    REQUIRE(unwrap(vec[1]) == 2);
+    REQUIRE(unwrap(vec[2]) == 3);
     REQUIRE(array[0] == 3);
     REQUIRE(array[1] == 1);
     REQUIRE(array[2] == 2);
