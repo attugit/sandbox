@@ -9,9 +9,10 @@ Welcome to sandbox's documentation!
 Contents:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 1
 
     alias
+    assignable_const
     containers
     inapt
     opaque
