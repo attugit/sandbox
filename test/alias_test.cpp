@@ -52,5 +52,29 @@ TEST_CASE("alias", "[alias]") {
     REQUIRE(array[1] == 1);
     REQUIRE(array[2] == 2);
   }
+  SECTION("cross-const") {
+    const int ci = 1;
+    int i = 2;
+    auto ca = alias(ci);
+    REQUIRE(unwrap(ca) == 1);
+    ca = rebind(i);
+    REQUIRE(unwrap(ca) == 2);
+  }
+  SECTION("function arg") {
+    int x = 10;
+    int y = 12;
+    auto foo = [](alias_t<int> a, alias_t<int> b) {
+      if (unwrap(a) < unwrap(b)) {
+        auto tmp = a;
+        a = rebind(b);
+        b = rebind(tmp);
+      }
+      a = 42;
+      b = 7;
+    };
+    foo(ref(x), ref(y));
+    REQUIRE(x == 7);
+    REQUIRE(y == 42);
+  }
 }
 }
