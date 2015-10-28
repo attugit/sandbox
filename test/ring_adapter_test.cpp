@@ -6,12 +6,10 @@
 #include <resource.hpp>
 namespace {
 using namespace archie;
-TEST_CASE("ring_adapter", "[ring]") {
-  using buff_t = std::vector<test::resource>;
-  using ring_t = ring_adapter<buff_t>;
-  buff_t buff;
-  buff.reserve(4);
-  ring_t ring{std::move(buff)};
+TEST_CASE("ring_adapter vector", "[ring]") {
+  using ring_t = ring_adapter<std::vector<test::resource>>;
+  ring_t ring;
+  ring->reserve(4);
   REQUIRE(ring.empty());
   REQUIRE(ring.size() == 0);
   REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());

@@ -26,7 +26,7 @@ public:
 
   size_type size() const { return container_.size(); }
   size_type capacity() const { return container_.capacity(); }
-  bool empty() const { return container_.empty(); }
+  bool empty() const { return size() == 0; }
 
   template <typename... Args>
   void emplace_back(Args&&... args) {
@@ -35,6 +35,11 @@ public:
       pos_ = iterator{container_, 0};
     } else { *pos_++ = std::move(value_type{std::forward<Args>(args)...}); }
   }
+
+  container_t* operator->() { return &container_; }
+  container_t const* operator->() const { return &container_; }
+  container_t& operator*() { return container_; }
+  container_t const& operator*() const { return container_; }
 
 private:
   container_t container_;
