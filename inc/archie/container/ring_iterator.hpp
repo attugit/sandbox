@@ -24,19 +24,19 @@ public:
 
   ///--------------------------------------------
   template <typename Iter, typename Distance0, typename Distance1>
-  ring_iterator(Iter begin, Distance0 last, Distance1 offset)
+  explicit ring_iterator(Iter begin, Distance0 last, Distance1 offset)
       : front_(begin), to_last_(last != 0 ? last : 1), offset_(offset) {}
   template <typename Iter, typename Distance>
-  ring_iterator(Iter begin, Iter last, Distance offset)
+  explicit ring_iterator(Iter begin, Iter last, Distance offset)
       : ring_iterator(begin, std::distance(begin, last), offset) {}
   template <typename Iter>
-  ring_iterator(Iter begin, Iter last)
+  explicit ring_iterator(Iter begin, Iter last)
       : ring_iterator(begin, last, 0) {}
   template <typename Iter>
-  ring_iterator(Iter begin, Iter last, Iter first)
+  explicit ring_iterator(Iter begin, Iter last, Iter first)
       : ring_iterator(begin, last, std::distance(begin, first)) {}
   template <typename Range>
-  ring_iterator(Range& r, typename std::remove_cv_t<Range>::difference_type n)
+  explicit ring_iterator(Range& r, typename std::remove_cv_t<Range>::difference_type n)
       : ring_iterator(std::begin(r), r.size(), n) {}
   template <typename Range>
   explicit ring_iterator(Range& r)
@@ -75,7 +75,7 @@ public:
   }
 
 private:
-  iterator normalize() const { return std::next(static_cast<iterator const&>(front_), offset_ % to_last_); }
+  iterator normalize() const { return std::next<iterator>(front_, offset_ % to_last_); }
   ///--------------------------------------------
   assignable_const<iterator> front_;
   assignable_const<difference_type> to_last_;
