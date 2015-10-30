@@ -1,5 +1,6 @@
 #pragma once
 #include <utility>
+#include <archie/meta/model_of.hpp>
 
 namespace archie {
 
@@ -15,6 +16,13 @@ struct inapt_t {
   using const_reference = T const&;
 
 private:
+  struct is_valid_policy {
+    template <typename Policy>
+    auto requires(Policy) -> decltype(std::declval<Policy>().null(),
+                                      std::declval<Policy>().is_null(std::declval<T>()));
+  };
+  static_assert(meta::model_of<is_valid_policy(P)>::value == true,
+                "Inapt policy must provide null() and is_null(T) methods");
   struct impl_ : P {
     impl_() : P(), value(P::null()) {}
     bool is_null() const { return P::is_null(value); }
