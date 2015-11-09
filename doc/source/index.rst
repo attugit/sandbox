@@ -18,6 +18,7 @@ Contents:
     opaque
     pure_function
     resource
+    ring_adapter
     ring_iterator
 
 Indices and tables

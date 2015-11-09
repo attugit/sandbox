@@ -5,6 +5,8 @@ ring_iterator
 API Reference
 =============
 
+.. cpp:type:: Iterator
+
 .. cpp:class:: ring_iterator<Iterator>
 
     .. cpp:type:: pointer

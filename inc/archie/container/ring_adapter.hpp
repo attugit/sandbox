@@ -7,7 +7,6 @@ namespace archie {
 template <typename Container>
 struct ring_adapter {
 private:
-  using container_t = Container;
   struct is_valid_container {
     template <typename C>
     auto requires(C) -> decltype(std::declval<C const>().begin(),
@@ -23,11 +22,11 @@ private:
   static_assert(meta::model_of<is_valid_container(Container)>::value == true, "");
 
 public:
-  using value_type = typename container_t::value_type;
-  using size_type = typename container_t::size_type;
-  using difference_type = typename container_t::difference_type;
-  using iterator = ring_iterator<typename container_t::iterator>;
-  using const_iterator = ring_iterator<typename container_t::const_iterator>;
+  using value_type = typename Container::value_type;
+  using size_type = typename Container::size_type;
+  using difference_type = typename Container::difference_type;
+  using iterator = ring_iterator<typename Container::iterator>;
+  using const_iterator = ring_iterator<typename Container::const_iterator>;
 
   template <typename... Args>
   explicit ring_adapter(Args&&... args)
@@ -51,13 +50,13 @@ public:
     } else { *pos_++ = std::move(value_type{std::forward<Args>(args)...}); }
   }
 
-  container_t* operator->() { return &container_; }
-  container_t const* operator->() const { return &container_; }
-  container_t& operator*() { return container_; }
-  container_t const& operator*() const { return container_; }
+  Container* operator->() { return &container_; }
+  Container const* operator->() const { return &container_; }
+  Container& operator*() { return container_; }
+  Container const& operator*() const { return container_; }
 
 private:
-  container_t container_;
+  Container container_;
   iterator pos_;
 };
 }
