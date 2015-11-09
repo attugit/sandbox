@@ -13,31 +13,19 @@ TEST_CASE("ring_adapter vector", "[ring]") {
   REQUIRE(ring.empty());
   REQUIRE(ring.size() == 0);
   REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
+  const int capacity = ring->capacity();
+  auto const salt = 42;
+  auto const check = [](ring_t& ra, auto item, typename ring_t::size_type size) {
+    ra.emplace_back(item);
+    REQUIRE(!ra.empty());
+    REQUIRE((ra.size() == size));
+    auto const distance =
+        static_cast<typename ring_t::size_type>(std::distance(std::begin(ra), std::end(ra)));
+    REQUIRE((distance == size));
+    REQUIRE((*(std::begin(ra) + ra.size() - 1) == item));
+  };
 
-  ring.emplace_back(0);
-  REQUIRE(!ring.empty());
-  REQUIRE(ring.size() == 1);
-  REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  REQUIRE(*std::begin(ring) == 0);
-
-  ring.emplace_back(1);
-  REQUIRE(ring.size() == 2);
-  REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  REQUIRE(*std::begin(ring) == 0);
-
-  ring.emplace_back(2);
-  REQUIRE(ring.size() == 3);
-  REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  REQUIRE(*std::begin(ring) == 0);
-
-  ring.emplace_back(3);
-  REQUIRE(ring.size() == 4);
-  REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  REQUIRE(*std::begin(ring) == 0);
-
-  ring.emplace_back(3);
-  REQUIRE(ring.size() == 4);
-  REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  REQUIRE(*std::begin(ring) == 1);
+  for (auto idx = 0; idx < capacity; ++idx) { check(ring, idx + salt, idx + 1); }
+  for (auto idx = 0; idx < capacity; ++idx) { check(ring, idx + capacity + salt, capacity); }
 }
 }
