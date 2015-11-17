@@ -42,7 +42,11 @@ def configure(conf):
   conf.env.CXXFLAGS += flags
   conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
   conf.env.DEFINES += ['NDEBUG']
-  if not 'clang' in conf.env.CXX:
+  if conf.check_cxx(fragment='int main() {}\n',
+          cxxflags='-flto',
+          linkflags='-flto',
+          mandatory=False,
+          msg='Checking for link time optimization'):
     conf.env.CXXFLAGS += ['-flto']
     conf.env.LINKFLAGS += ['-flto']
 
