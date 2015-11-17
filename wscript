@@ -8,18 +8,18 @@ top = '.'
 out = 'build'
 flags = [
   '-std=c++14',
-#  '-Wall',
-#  '-Wextra',
-#  '-Wshadow',
-#  '-Wconversion',
-#  '-Wnon-virtual-dtor',
-#  '-Wold-style-cast',
-#  '-Wcast-align',
-#  '-Wunused',
-#  '-Woverloaded-virtual',
-#  '-pedantic',
-#  '-pedantic-errors',
-#  '-Werror'
+  '-Wall',
+  '-Wextra',
+  '-Wshadow',
+  '-Wconversion',
+  '-Wnon-virtual-dtor',
+  '-Wold-style-cast',
+  '-Wcast-align',
+  '-Wunused',
+  '-Woverloaded-virtual',
+  '-pedantic',
+  '-pedantic-errors',
+  '-Werror'
 ]
 
 def options(opt):
