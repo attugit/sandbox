@@ -13,7 +13,7 @@ TEST_CASE("ring_adapter vector", "[ring]") {
   REQUIRE(ring.empty());
   REQUIRE(ring.size() == 0);
   REQUIRE(std::distance(std::begin(ring), std::end(ring)) == ring.size());
-  const int capacity = ring->capacity();
+  auto const capacity = static_cast<test::resource::value_type>(ring->capacity());
   auto const salt = 42;
   auto const check = [](ring_t& ra, auto item, typename ring_t::size_type size) {
     ra.emplace_back(item);

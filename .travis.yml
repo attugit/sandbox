@@ -41,5 +41,5 @@ before_install:
 script:
   - rm -rf build;
   - CXX=$COMPILER ./waf configure;
-  - CXX=$COMPILER ./waf debug --alltests
-  - CXX=$COMPILER ./waf release --alltests
+  - CXX=$COMPILER ./waf build --alltests
+  - CXX=$COMPILER ./waf build_debug --alltests

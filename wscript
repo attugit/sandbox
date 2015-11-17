@@ -6,19 +6,20 @@ APPNAME='sandbox'
 
 top = '.'
 out = 'build'
-buildflags = [
-  '-std=c++1y',
+flags = [
+  '-std=c++1z',
   '-Wall',
   '-Wextra',
   '-Wshadow',
+  '-Wconversion',
   '-Wnon-virtual-dtor',
   '-Wold-style-cast',
   '-Wcast-align',
   '-Wunused',
   '-Woverloaded-virtual',
   '-pedantic',
-  '-Werror',
-  '-march=native'
+  '-pedantic-errors',
+  '-Werror'
 ]
 
 def options(opt):
@@ -26,62 +27,54 @@ def options(opt):
   opt.load('waf_unit_test')
 
 def configure(conf):
-  conf.load('compiler_cxx')
   conf.load('waf_unit_test')
   conf.define('APPNAME', APPNAME)
   conf.define('VERSION', VERSION)
-  conf.env.append_value('CXXFLAGS', buildflags)
+
+  conf.setenv('debug')
+  conf.load('compiler_cxx')
+  conf.env.CXXFLAGS += flags
+  conf.env.CXXFLAGS += ['-g', '-O0']
+  conf.env.DEFINES += ['DEBUG']
+
+  conf.setenv('release')
+  conf.load('compiler_cxx')
+  conf.env.CXXFLAGS += flags
+  conf.env.CXXFLAGS += ['-O3', '-fPIC', '-fno-rtti', '-flto']
+  conf.env.LINKFLAGS += ['-march=native', '-flto']
+  conf.env.DEFINES += ['NDEBUG']
 
 from waflib.Tools import waf_unit_test
 def build(bld):
-  bld.env.append_value('INCLUDES', bld.out_dir)
-  bld.env.append_value('INCLUDES', 'inc')
-  bld.env.append_value('INCLUDES', 'src')
-  bld.env.append_value('INCLUDES', 'test')
-  bld.env.append_value('INCLUDES', bld.bldnode.abspath())
-  src = bld.path.ant_glob(['test/**/*.cpp', 'src/**/*.cpp'])
+  if not bld.variant:
+    bld.fatal('try "waf --help"')
+  bld.env.INCLUDES += ['inc', 'src']
   bld(
-    source       = src,
+    source       = bld.path.ant_glob(['src/**/*.cpp']),
     target       = APPNAME,
-    features     = 'cxx cxxprogram test',
-
-    includes     = bld.env.INCLUDES,
-    defines      = bld.env.DEFINES,
-
-    lib          = bld.env.LIB,
-    libpath      = bld.env.LIBPATH,
-    stlib        = [],
-    stlibpath    = [],
-    linkflags    = bld.env.LINKFLAGS,
-    rpath        = [],
+    features     = 'cxx cxxstlib',
     vnum         = VERSION,
-    use          = '',
-
-    install_path = '${PREFIX}/bin',
-    cflags       = [],
-    cxxflags     = bld.env.CXXFLAGS,
-    dflags       = [],
+  )
+  bld.env.INCLUDES += ['test']
+  bld(
+    source       = bld.path.ant_glob(['test/**/*.cpp']),
+    target       = 'ut_' + APPNAME,
+    features     = 'cxx cxxprogram test',
+    use          = APPNAME
   )
   bld.add_post_fun(waf_unit_test.summary)
   bld.add_post_fun(waf_unit_test.set_exit_code)
 
 from waflib.Build import BuildContext
-class debug(BuildContext):
-  cmd = 'debug'
-  variant = 'debug'
-  fun = 'debug'
+from waflib.Build import CleanContext
+from waflib.Build import InstallContext
+from waflib.Build import UninstallContext
 
-def debug(bld):
-  bld.env.append_value('CXXFLAGS', ['-g', '-O0'])
-  bld.env.append_value('DEFINES', 'DEBUG')
-  build(bld)
-
-class release(BuildContext):
-  cmd = 'release'
-  variant = 'release'
-  fun = 'release'
-
-def release(bld):
-  bld.env.append_value('CXXFLAGS', ['-O3'])
-  bld.env.append_value('DEFINES', 'NDEBUG')
-  build(bld)
+for ctx in (BuildContext, CleanContext, InstallContext, UninstallContext):
+  name = ctx.__name__.replace('Context','').lower()
+  class debug(ctx):
+    cmd = name + '_debug'
+    variant = 'debug'
+  class release(ctx):
+    cmd = name
+    variant = 'release'
