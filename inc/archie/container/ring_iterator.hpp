@@ -25,7 +25,9 @@ public:
   ///--------------------------------------------
   template <typename Iter, typename Distance0, typename Distance1>
   explicit ring_iterator(Iter begin, Distance0 last, Distance1 offset)
-      : front_(begin), to_last_(last != 0 ? last : 1), offset_(offset) {}
+      : front_(begin),
+        to_last_(static_cast<difference_type>(last != 0 ? last : 1)),
+        offset_(static_cast<difference_type>(offset)) {}
   template <typename Iter, typename Distance>
   explicit ring_iterator(Iter begin, Iter last, Distance offset)
       : ring_iterator(begin, std::distance(begin, last), offset) {}
@@ -102,7 +104,7 @@ bool operator<=(ring_iterator<Iterator> const& lhs, ring_iterator<Iterator> cons
 template <typename Iterator, typename Distance>
 ring_iterator<Iterator> operator+(ring_iterator<Iterator> const& lhs, Distance rhs) {
   ring_iterator<Iterator> ret = lhs;
-  ret += rhs;
+  ret += static_cast<typename ring_iterator<Iterator>::difference_type>(rhs);
   return ret;
 }
 template <typename Iterator, typename Distance>

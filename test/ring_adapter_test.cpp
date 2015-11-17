@@ -25,7 +25,11 @@ TEST_CASE("ring_adapter vector", "[ring]") {
     REQUIRE((*(std::begin(ra) + ra.size() - 1) == item));
   };
 
-  for (auto idx = 0; idx < capacity; ++idx) { check(ring, idx + salt, idx + 1); }
-  for (auto idx = 0; idx < capacity; ++idx) { check(ring, idx + capacity + salt, capacity); }
+  for (auto idx = 0; idx < capacity; ++idx) {
+    check(ring, idx + salt, static_cast<typename ring_t::size_type>(idx + 1));
+  }
+  for (auto idx = 0; idx < capacity; ++idx) {
+    check(ring, idx + capacity + salt, static_cast<typename ring_t::size_type>(capacity));
+  }
 }
 }

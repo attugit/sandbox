@@ -41,7 +41,7 @@ public:
   const_iterator end() const { return cend(); }
 
   size_type max_size() const { return self().capacity(); }
-  size_type size() const { return std::distance(cbegin(), cend()); }
+  size_type size() const { return static_cast<size_type>(std::distance(cbegin(), cend())); }
   bool empty() const { return size() == 0; }
 
   reference operator[](size_type pos) { return *(begin() + pos); }
