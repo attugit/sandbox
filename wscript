@@ -40,7 +40,7 @@ def configure(conf):
   conf.setenv('release')
   conf.load('compiler_cxx')
   conf.env.CXXFLAGS += flags
-  #conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
+  conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
   #conf.env.LINKFLAGS += ['-flto']
   conf.env.DEFINES += ['NDEBUG']
 
