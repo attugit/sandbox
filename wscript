@@ -8,18 +8,18 @@ top = '.'
 out = 'build'
 flags = [
   '-std=c++14',
-  '-Wall',
-  '-Wextra',
-  '-Wshadow',
-  '-Wconversion',
-  '-Wnon-virtual-dtor',
-  '-Wold-style-cast',
-  '-Wcast-align',
-  '-Wunused',
-  '-Woverloaded-virtual',
-  '-pedantic',
-  '-pedantic-errors',
-  '-Werror'
+#  '-Wall',
+#  '-Wextra',
+#  '-Wshadow',
+#  '-Wconversion',
+#  '-Wnon-virtual-dtor',
+#  '-Wold-style-cast',
+#  '-Wcast-align',
+#  '-Wunused',
+#  '-Woverloaded-virtual',
+#  '-pedantic',
+#  '-pedantic-errors',
+#  '-Werror'
 ]
 
 def options(opt):
@@ -40,8 +40,8 @@ def configure(conf):
   conf.setenv('release')
   conf.load('compiler_cxx')
   conf.env.CXXFLAGS += flags
-  conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
-  conf.env.LINKFLAGS += ['-flto']
+  #conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
+  #conf.env.LINKFLAGS += ['-flto']
   conf.env.DEFINES += ['NDEBUG']
 
 from waflib.Tools import waf_unit_test
