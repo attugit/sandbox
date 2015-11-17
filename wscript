@@ -60,16 +60,21 @@ def build(bld):
     target       = APPNAME,
     features     = 'cxx cxxstlib',
     vnum         = VERSION,
+    install_path = '${PREFIX}/lib',
   )
   bld.env.INCLUDES += ['test']
   bld(
     source       = bld.path.ant_glob(['test/**/*.cpp']),
     target       = 'ut_' + APPNAME,
     features     = 'cxx cxxprogram test',
-    use          = APPNAME
+    use          = APPNAME,
+    install_path = None,
   )
   bld.add_post_fun(waf_unit_test.summary)
   bld.add_post_fun(waf_unit_test.set_exit_code)
+  inc = bld.path.find_dir('inc')
+  for f in bld.path.ant_glob(['inc/archie/**/*.hpp']):
+    bld.install_files('${PREFIX}/include/' + f.path_from(inc).replace(f.name, ''), f)
 
 from waflib.Build import BuildContext
 from waflib.Build import CleanContext
