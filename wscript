@@ -40,9 +40,11 @@ def configure(conf):
   conf.setenv('release')
   conf.load('compiler_cxx')
   conf.env.CXXFLAGS += flags
-  conf.env.CXXFLAGS += ['-O3', '-march=native', '-flto', '-fPIC', '-fno-rtti']
-  conf.env.LINKFLAGS += ['-flto']
+  conf.env.CXXFLAGS += ['-O3', '-march=native', '-fPIC', '-fno-rtti']
   conf.env.DEFINES += ['NDEBUG']
+  if not 'clang' in conf.env.CXX:
+    conf.env.CXXFLAGS += ['-flto']
+    conf.env.LINKFLAGS += ['-flto']
 
 from waflib.Tools import waf_unit_test
 def build(bld):
