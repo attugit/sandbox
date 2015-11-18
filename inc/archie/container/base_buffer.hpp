@@ -86,7 +86,7 @@ bool operator!=(base_buffer<S> const& lhs, base_buffer<S> const& rhs) {
 }
 template <typename S>
 bool operator<(base_buffer<S> const& lhs, base_buffer<S> const& rhs) {
-  return std::lexicographical_compare(
-      std::begin(lhs), std::end(lhs), std::begin(rhs), std::end(rhs));
+  return std::lexicographical_compare(std::begin(lhs), std::end(lhs), std::begin(rhs),
+                                      std::end(rhs));
 }
 }

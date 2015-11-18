@@ -126,10 +126,8 @@ public:
   mixed_buffer(mixed_buffer&& orig) : mixed_buffer() { *this = std::move(orig); }
   mixed_buffer& operator=(mixed_buffer const& orig) {
     if (this->capacity() != orig.capacity()) this->realloc(orig.capacity());
-    this->assign([](const_reference r) -> const_reference { return r; },
-                 this->begin(),
-                 orig.begin(),
-                 orig.end());
+    this->assign([](const_reference r) -> const_reference { return r; }, this->begin(),
+                 orig.begin(), orig.end());
     return *this;
   }
   mixed_buffer& operator=(mixed_buffer&& orig) {

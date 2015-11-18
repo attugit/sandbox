@@ -40,17 +40,13 @@ public:
     for (auto& x : other) this->emplace_back(std::move(x));
   }
   stack_buffer& operator=(stack_buffer const& other) {
-    this->assign([](const_reference r) -> const_reference { return r; },
-                 this->begin(),
-                 other.begin(),
-                 other.end());
+    this->assign([](const_reference r) -> const_reference { return r; }, this->begin(),
+                 other.begin(), other.end());
     return *this;
   }
   stack_buffer& operator=(stack_buffer&& other) {
-    this->assign([](reference r) -> value_type && { return std::move(r); },
-                 this->begin(),
-                 other.begin(),
-                 other.end());
+    this->assign([](reference r) -> value_type&& { return std::move(r); }, this->begin(),
+                 other.begin(), other.end());
     return *this;
   }
   ~stack_buffer() { this->clear(); }

@@ -37,9 +37,8 @@ TEST_CASE("model_of", "[meta]") {
   REQUIRE(model_of<HasCapacity>(vec));
   REQUIRE_FALSE(model_of<HasCapacity>(arr));
   REQUIRE_FALSE(meta::model_of<HasCapacity(arr_t)>::value);
-  std::integral_constant<bool,
-                         meta::model_of<Iterable(arr_t)>::value &
-                             meta::model_of<HasCapacity(arr_t)>::value> ic;
+  std::integral_constant<bool, meta::model_of<Iterable(arr_t)>::value &
+                                   meta::model_of<HasCapacity(arr_t)>::value> ic;
   REQUIRE_FALSE(ic);
 }
 }

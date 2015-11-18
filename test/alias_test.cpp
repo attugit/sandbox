@@ -42,9 +42,8 @@ TEST_CASE("alias", "[alias]") {
     REQUIRE(array[0] == 3);
     REQUIRE(array[1] == 1);
     REQUIRE(array[2] == 2);
-    std::sort(std::begin(vec), std::end(vec), [](auto const& lhs, auto const& rhs) {
-      return unwrap(lhs) < unwrap(rhs);
-    });
+    std::sort(std::begin(vec), std::end(vec),
+              [](auto const& lhs, auto const& rhs) { return unwrap(lhs) < unwrap(rhs); });
     REQUIRE(unwrap(vec[0]) == 1);
     REQUIRE(unwrap(vec[1]) == 2);
     REQUIRE(unwrap(vec[2]) == 3);
