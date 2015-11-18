@@ -2,3 +2,7 @@ build/
 .lock-waf*
 .waf*
 *.swp
+.cproject
+.project
+.pydevproject
+.settings/
