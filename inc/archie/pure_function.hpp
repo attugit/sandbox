@@ -2,6 +2,7 @@
 #include <utility>
 #include <type_traits>
 #include <archie/meta/static_constexpr_storage.hpp>
+#include <archie/meta/requires.hpp>
 
 namespace archie {
 namespace detail {
@@ -10,6 +11,8 @@ namespace detail {
 
   template <typename R, typename... Args>
   struct to_function_pointer_<R(Args...)> {
+    using pointer = R (*)(Args...);
+
   private:
 #if __GNUC__ < 5
     template <typename T>
@@ -18,20 +21,20 @@ namespace detail {
     template <typename T>
     using trivial = std::is_trivially_default_constructible<T>;
 #endif
-  public:
-    using pointer = R (*)(Args...);
-
     template <typename T>
-    typename std::enable_if<std::is_convertible<T, pointer>::value, pointer>::type operator()(
-        T t) const {
+    struct is_stateless : std::integral_constant<bool,
+                                                 !std::is_convertible<T, pointer>::value &&
+                                                     std::is_empty<T>::value &&
+                                                     trivial<T>::value> {};
+
+  public:
+    template <typename T, meta::requires<std::is_convertible<T, pointer>>...>
+    pointer operator()(T t) const {
       return t;
     }
 
-    template <typename T>
-    typename std::enable_if<!std::is_convertible<T, pointer>::value && std::is_empty<T>::value &&
-                                trivial<T>::value,
-                            pointer>::type
-    operator()(T) const {
+    template <typename T, meta::requires<is_stateless<T>>...>
+    pointer operator()(T) const {
       return this->operator()([](Args... args) {
         return typename std::add_const<T>::type{}(std::forward<Args>(args)...);
       });
