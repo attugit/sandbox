@@ -23,6 +23,15 @@ matrix:
           packages:
             - gcc-5
             - g++-5
+    - env: COMPILER=g++-5.2
+      os: linux
+      addons: &gcc5
+        apt:
+          sources: &sources
+            - ubuntu-toolchain-r-test
+          packages:
+            - gcc-5.2
+            - g++-5.2
     - env: COMPILER=clang++-3.7
       os: linux
       addons: &clang37
